@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Simple Git app icon: a branch leaving main and a commit on it.
+       Cobalt #2450C8 and the feature-branch orange of the interface. -->
+  <rect x="32" y="32" width="960" height="960" rx="216" fill="#2450C8"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="72" stroke-linecap="round">
+    <path d="M384 288 V736"/>
+    <path d="M384 688 C384 520 640 576 640 352"/>
+  </g>
+  <circle cx="384" cy="272" r="88" fill="#FFFFFF"/>
+  <circle cx="384" cy="752" r="88" fill="#FFFFFF"/>
+  <circle cx="640" cy="352" r="96" fill="#F59E4C" stroke="#FFFFFF" stroke-width="40"/>
+</svg>

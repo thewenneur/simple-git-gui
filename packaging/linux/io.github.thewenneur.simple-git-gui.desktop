@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Simple Git
+GenericName=Git client
+GenericName[fr]=Client Git
+Comment=Use Git without knowing Git: changes, branches, send and get
+Comment[fr]=Utiliser Git sans connaître Git : modifications, branches, envoyer et récupérer
+Exec=simple-git-gui %f
+Icon=io.github.thewenneur.simple-git-gui
+Terminal=false
+Categories=Development;RevisionControl;
+Keywords=git;version;branch;merge;rebase;diff;
+StartupWMClass=io.github.thewenneur.simple-git-gui

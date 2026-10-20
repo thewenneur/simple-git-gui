@@ -33,8 +33,42 @@ fn main() -> iced::Result {
         default_text_size: 14.into(),
         ..iced::Settings::default()
     })
-    .window_size((1280.0, 800.0))
+    .window(window_settings())
     .run()
+}
+
+fn window_settings() -> iced::window::Settings {
+    #[allow(unused_mut)]
+    let mut settings = iced::window::Settings {
+        size: iced::Size::new(1280.0, 800.0),
+        icon: window_icon(),
+        ..iced::window::Settings::default()
+    };
+    // Matches the .desktop file name, so Wayland docks show the right icon.
+    #[cfg(target_os = "linux")]
+    {
+        settings.platform_specific.application_id = APP_ID.to_string();
+    }
+    settings
+}
+
+/// Also the macOS bundle identifier and the Linux .desktop file name.
+#[cfg(target_os = "linux")]
+const APP_ID: &str = "io.github.thewenneur.simple-git-gui";
+
+/// The title bar and taskbar icon. Executables also carry the icon on Windows
+/// (`build.rs`) and in the macOS bundle; this one is for the running window.
+fn window_icon() -> Option<iced::window::Icon> {
+    let png = include_bytes!("../assets/icon/simple-git-64.png");
+    let decoder = png::Decoder::new(&png[..]);
+    let mut reader = decoder.read_info().ok()?;
+    let mut rgba = vec![0; reader.output_buffer_size()];
+    let info = reader.next_frame(&mut rgba).ok()?;
+    if info.color_type != png::ColorType::Rgba || info.bit_depth != png::BitDepth::Eight {
+        return None;
+    }
+    rgba.truncate(info.buffer_size());
+    iced::window::icon::from_rgba(rgba, info.width, info.height).ok()
 }
 
 /// Picks the renderer, unless `ICED_BACKEND` is set. `SIMPLE_GIT_GPU=1` or `0`
@@ -55,4 +89,12 @@ fn choose_renderer() {
     let backend = if gpu { "wgpu,tiny-skia" } else { "tiny-skia" };
     // SAFETY: called first thing in `main`, before any other thread exists.
     unsafe { std::env::set_var("ICED_BACKEND", backend) };
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn window_icon_decodes() {
+        assert!(super::window_icon().is_some());
+    }
 }
