@@ -126,17 +126,16 @@ impl CommandRecord {
                     .unwrap_or("")
                     .trim();
                 if msg.is_empty() {
-                    format!("git a échoué (code {code})")
+                    t!("runner.exit_code", code = code).into_owned()
                 } else {
                     msg.to_string()
                 }
             }
-            Outcome::Killed => "git a été interrompu".to_string(),
-            Outcome::TimedOut => format!(
-                "git n'a pas répondu en {} s et a été arrêté",
-                self.command.timeout.as_secs()
-            ),
-            Outcome::SpawnFailed(e) => format!("impossible de lancer git : {e}"),
+            Outcome::Killed => t!("runner.killed").into_owned(),
+            Outcome::TimedOut => {
+                t!("runner.timed_out", secs = self.command.timeout.as_secs()).into_owned()
+            }
+            Outcome::SpawnFailed(e) => t!("runner.spawn_failed", detail = e).into_owned(),
         }
     }
 }

@@ -1,0 +1,254 @@
+_version: 2
+
+# Every key must have both `en` and `fr` (checked by the `i18n` tests).
+# Git terms (merge, rebase, staged…) stay visible next to the plain wording.
+
+app.title_repo:
+  en: "Simple Git — %{name}"
+  fr: "Simple Git — %{name}"
+
+common.ok:
+  en: "OK"
+  fr: "OK"
+
+error.git_missing:
+  en: "Git was not found on this computer. Install it from https://git-scm.com and restart the application. (%{detail})"
+  fr: "Git est introuvable sur cet ordinateur. Installez-le depuis https://git-scm.com puis relancez l'application. (%{detail})"
+error.folder_exists:
+  en: "The folder %{path} already exists. Choose another location."
+  fr: "Le dossier %{path} existe déjà. Choisissez un autre emplacement."
+error.clone_failed:
+  en: "The copy failed: %{detail}"
+  fr: "La copie a échoué : %{detail}"
+error.console_malformed:
+  en: "Malformed command: %{detail}"
+  fr: "Commande mal formée : %{detail}"
+
+busy.cloning:
+  en: "Copying %{url}…"
+  fr: "Copie de %{url} en cours…"
+busy.running:
+  en: "Running %{command}…"
+  fr: "%{command} en cours…"
+busy.opening:
+  en: "Opening the repository…"
+  fr: "Ouverture du dépôt…"
+
+dialog.open_repo:
+  en: "Open a repository"
+  fr: "Ouvrir un dépôt"
+dialog.clone_parent:
+  en: "Folder where the copy will be created"
+  fr: "Dossier où créer la copie"
+
+toolbar.refresh:
+  en: "Refresh"
+  fr: "Rafraîchir"
+toolbar.close:
+  en: "Close repository"
+  fr: "Fermer le dépôt"
+toolbar.advanced:
+  en: "Advanced mode"
+  fr: "Mode avancé"
+
+welcome.open_title:
+  en: "Open an existing repository"
+  fr: "Ouvrir un dépôt existant"
+welcome.open_hint:
+  en: "Choose the folder of a project already tracked by Git."
+  fr: "Choisissez le dossier d'un projet déjà suivi par Git."
+welcome.pick_folder:
+  en: "Choose a folder…"
+  fr: "Choisir un dossier…"
+welcome.clone_title:
+  en: "Get a project from a server"
+  fr: "Récupérer un projet depuis un serveur"
+welcome.clone_hint:
+  en: "Paste the repository address (GitHub, GitLab…) to create a copy on this computer."
+  fr: "Collez l'adresse du dépôt (GitHub, GitLab…) pour en créer une copie sur cet ordinateur."
+welcome.clone_placeholder:
+  en: "https://github.com/team/project.git"
+  fr: "https://github.com/equipe/projet.git"
+welcome.pick_parent:
+  en: "Choose where to copy it…"
+  fr: "Choisir où le copier…"
+welcome.no_folder:
+  en: "No folder chosen"
+  fr: "Aucun dossier choisi"
+welcome.clone_destination:
+  en: "The project will be copied to %{path}"
+  fr: "Le projet sera copié dans %{path}"
+welcome.clone_button:
+  en: "Copy the project"
+  fr: "Copier le projet"
+welcome.git_searching:
+  en: "Looking for git…"
+  fr: "Recherche de git…"
+
+repo.tab_changes:
+  en: "Changes"
+  fr: "Modifications"
+repo.tab_history:
+  en: "History"
+  fr: "Historique"
+repo.reading_status:
+  en: "Reading the repository state…"
+  fr: "Lecture de l'état du dépôt…"
+repo.not_a_repo:
+  en: "This folder is not a Git repository."
+  fr: "Ce dossier n'est pas un dépôt Git."
+repo.bad_rev_parse:
+  en: "Unexpected answer from git rev-parse."
+  fr: "Réponse inattendue de git rev-parse."
+
+changes.none:
+  en: "No changes: everything is saved."
+  fr: "Aucune modification : tout est enregistré."
+changes.conflicts:
+  en: "In conflict"
+  fr: "En conflit"
+changes.conflicts_hint:
+  en: "to resolve before going further"
+  fr: "à résoudre avant de continuer"
+changes.staged:
+  en: "Ready to be saved"
+  fr: "Prêt à être enregistré"
+changes.staged_hint:
+  en: "git: staged, in the index"
+  fr: "git : indexé, « staged »"
+changes.unstaged:
+  en: "Modified"
+  fr: "Modifié"
+changes.unstaged_hint:
+  en: "git: unstaged"
+  fr: "git : non indexé, « unstaged »"
+changes.untracked:
+  en: "New files"
+  fr: "Nouveaux fichiers"
+changes.untracked_hint:
+  en: "git: untracked"
+  fr: "git : non suivis, « untracked »"
+
+history.none:
+  en: "No commits yet."
+  fr: "Aucun commit pour l'instant."
+
+journal.title:
+  en: "Git journal"
+  fr: "Journal Git"
+journal.hint:
+  en: "every action of the application maps to these commands"
+  fr: "chaque action de l'application correspond à ces commandes"
+journal.show_background:
+  en: "Show automatic refreshes"
+  fr: "Afficher les actualisations automatiques"
+journal.clear:
+  en: "Clear"
+  fr: "Vider"
+journal.console_placeholder:
+  en: "status, log --oneline, fetch…"
+  fr: "status, log --oneline, fetch…"
+journal.run:
+  en: "Run"
+  fr: "Exécuter"
+journal.more_lines:
+  en: "… (%{count} more lines)"
+  fr: "… (%{count} lignes de plus)"
+
+branch.current:
+  en: "Branch: %{name}"
+  fr: "Branche : %{name}"
+branch.detached:
+  en: "No active branch (detached HEAD on commit %{oid})"
+  fr: "Aucune branche active (HEAD détaché sur le commit %{oid})"
+branch.none:
+  en: "No branch"
+  fr: "Aucune branche"
+
+sync.no_commits:
+  en: "No commits yet"
+  fr: "Aucun commit pour l'instant"
+sync.unpublished:
+  en: "Not published on the server yet"
+  fr: "Pas encore publiée sur le serveur"
+sync.up_to_date:
+  en: "Up to date with %{upstream}"
+  fr: "À jour avec %{upstream}"
+sync.ahead:
+  en: "%{ahead} commit(s) to send to %{upstream}"
+  fr: "%{ahead} commit(s) à envoyer vers %{upstream}"
+sync.behind:
+  en: "%{behind} commit(s) to get from %{upstream}"
+  fr: "%{behind} commit(s) à récupérer depuis %{upstream}"
+sync.both:
+  en: "%{ahead} commit(s) to send and %{behind} to get (%{upstream})"
+  fr: "%{ahead} commit(s) à envoyer et %{behind} à récupérer (%{upstream})"
+
+op.merge:
+  en: "A merge is in progress"
+  fr: "Une fusion (merge) est en cours"
+op.rebase:
+  en: "A branch update (rebase) is in progress"
+  fr: "Une mise à jour de branche (rebase) est en cours"
+op.cherry_pick:
+  en: "A commit copy (cherry-pick) is in progress"
+  fr: "Une copie de commit (cherry-pick) est en cours"
+op.revert:
+  en: "A commit undo (revert) is in progress"
+  fr: "Une annulation de commit (revert) est en cours"
+
+runner.exit_code:
+  en: "git failed (code %{code})"
+  fr: "git a échoué (code %{code})"
+runner.killed:
+  en: "git was interrupted"
+  fr: "git a été interrompu"
+runner.timed_out:
+  en: "git did not answer within %{secs} s and was stopped"
+  fr: "git n'a pas répondu en %{secs} s et a été arrêté"
+runner.spawn_failed:
+  en: "could not start git: %{detail}"
+  fr: "impossible de lancer git : %{detail}"
+
+status.untracked:
+  en: "New file (not tracked yet)"
+  fr: "Nouveau fichier (pas encore suivi)"
+status.ignored:
+  en: "Ignored"
+  fr: "Ignoré"
+status.conflict_both_deleted:
+  en: "Conflict: deleted on both sides"
+  fr: "Conflit : supprimé des deux côtés"
+status.conflict_added_one_side:
+  en: "Conflict: added on one side only"
+  fr: "Conflit : ajouté d'un seul côté"
+status.conflict_modified_deleted:
+  en: "Conflict: modified on one side, deleted on the other"
+  fr: "Conflit : modifié d'un côté, supprimé de l'autre"
+status.conflict_both_added:
+  en: "Conflict: added on both sides"
+  fr: "Conflit : ajouté des deux côtés"
+status.conflict_both_modified:
+  en: "Conflict: modified on both sides"
+  fr: "Conflit : modifié des deux côtés"
+status.added:
+  en: "New file"
+  fr: "Nouveau fichier"
+status.deleted:
+  en: "Deleted"
+  fr: "Supprimé"
+status.renamed:
+  en: "Renamed"
+  fr: "Renommé"
+status.copied:
+  en: "Copied"
+  fr: "Copié"
+status.type_changed:
+  en: "Type changed"
+  fr: "Type changé"
+status.submodule_modified:
+  en: "Submodule modified"
+  fr: "Sous-module modifié"
+status.modified:
+  en: "Modified"
+  fr: "Modifié"

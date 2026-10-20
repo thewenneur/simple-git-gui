@@ -58,17 +58,17 @@ pub struct FileEntry {
 }
 
 impl FileEntry {
-    /// A plain-language description of the file's state.
-    pub fn describe(&self) -> &'static str {
+    /// Translation key of the file's state, in plain language.
+    pub fn state_key(&self) -> &'static str {
         match self.kind {
-            EntryKind::Untracked => "Nouveau fichier (pas encore suivi)",
-            EntryKind::Ignored => "Ignoré",
+            EntryKind::Untracked => "status.untracked",
+            EntryKind::Ignored => "status.ignored",
             EntryKind::Conflicted => match self.xy.as_str() {
-                "DD" => "Conflit : supprimé des deux côtés",
-                "AU" | "UA" => "Conflit : ajouté d'un seul côté",
-                "DU" | "UD" => "Conflit : modifié d'un côté, supprimé de l'autre",
-                "AA" => "Conflit : ajouté des deux côtés",
-                _ => "Conflit : modifié des deux côtés",
+                "DD" => "status.conflict_both_deleted",
+                "AU" | "UA" => "status.conflict_added_one_side",
+                "DU" | "UD" => "status.conflict_modified_deleted",
+                "AA" => "status.conflict_both_added",
+                _ => "status.conflict_both_modified",
             },
             EntryKind::Tracked => {
                 // Prefer the most significant of the two sides.
@@ -78,13 +78,13 @@ impl FileEntry {
                     self.staged
                 };
                 match change {
-                    Change::Added => "Nouveau fichier",
-                    Change::Deleted => "Supprimé",
-                    Change::Renamed => "Renommé",
-                    Change::Copied => "Copié",
-                    Change::TypeChanged => "Type changé",
-                    _ if self.is_submodule => "Sous-module modifié",
-                    _ => "Modifié",
+                    Change::Added => "status.added",
+                    Change::Deleted => "status.deleted",
+                    Change::Renamed => "status.renamed",
+                    Change::Copied => "status.copied",
+                    Change::TypeChanged => "status.type_changed",
+                    _ if self.is_submodule => "status.submodule_modified",
+                    _ => "status.modified",
                 }
             }
         }
@@ -138,7 +138,7 @@ pub struct ParseError(pub String);
 
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "sortie de git status inattendue : {}", self.0)
+        write!(f, "unexpected git status output: {}", self.0)
     }
 }
 
@@ -297,17 +297,17 @@ mod tests {
         assert!(e[0].has_unstaged() && !e[0].has_staged());
 
         assert_eq!(e[1].staged, Change::Added);
-        assert_eq!(e[1].describe(), "Nouveau fichier");
+        assert_eq!(e[1].state_key(), "status.added");
 
         assert_eq!(e[2].path, "renamed.vhd");
         assert_eq!(e[2].orig_path.as_deref(), Some("old.vhd"));
-        assert_eq!(e[2].describe(), "Renommé");
+        assert_eq!(e[2].state_key(), "status.renamed");
 
         assert!(e[3].is_submodule);
-        assert_eq!(e[3].describe(), "Sous-module modifié");
+        assert_eq!(e[3].state_key(), "status.submodule_modified");
 
         assert_eq!(e[4].kind, EntryKind::Conflicted);
-        assert_eq!(e[4].describe(), "Conflit : modifié des deux côtés");
+        assert_eq!(e[4].state_key(), "status.conflict_both_modified");
         assert_eq!(status.conflicts().count(), 1);
 
         assert_eq!(e[5].kind, EntryKind::Untracked);

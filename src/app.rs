@@ -1,5 +1,6 @@
 //! The application state, its messages and its views.
 
+use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -11,6 +12,7 @@ use iced::{Alignment, Element, Font, Length, Subscription, Task};
 use crate::git::repo::{self, Commit, Operation, RepoPaths};
 use crate::git::runner::{CommandRecord, GitCommand, run};
 use crate::git::status::{EntryKind, FileEntry, Status};
+use crate::i18n::{self, Lang, tr};
 
 /// How many commits the history tab shows.
 const LOG_LIMIT: usize = 200;
@@ -21,6 +23,7 @@ const AUTO_REFRESH: Duration = Duration::from_secs(4);
 
 #[derive(Default)]
 pub struct App {
+    lang: Option<Lang>,
     git_version: Option<String>,
     repo: Option<OpenRepo>,
     /// Every git command run so far, newest last.
@@ -78,6 +81,7 @@ pub enum Message {
     ConsoleSubmit,
     ConsoleDone(CommandRecord),
     ClearJournal,
+    SetLanguage(Lang),
     DismissError,
 }
 
@@ -85,7 +89,12 @@ impl App {
     /// Starts the app, opening `initial_dir` right away when given
     /// (e.g. `simple-git-gui path/to/repo`).
     pub fn new(initial_dir: Option<PathBuf>) -> (Self, Task<Message>) {
-        let mut app = Self::default();
+        let lang = Lang::from_system();
+        i18n::set(lang);
+        let mut app = Self {
+            lang: Some(lang),
+            ..Self::default()
+        };
         let check = Task::perform(run(GitCommand::new(["--version"])), Message::GitChecked);
         let open = match initial_dir {
             Some(dir) => app.open(dir),
@@ -96,7 +105,7 @@ impl App {
 
     pub fn title(&self) -> String {
         match &self.repo {
-            Some(repo) => format!("Simple Git — {}", folder_name(&repo.paths.root)),
+            Some(repo) => t!("app.title_repo", name = folder_name(&repo.paths.root)).into_owned(),
             None => "Simple Git".to_string(),
         }
     }
@@ -115,17 +124,16 @@ impl App {
                 if record.success() {
                     self.git_version = Some(record.stdout.trim().to_string());
                 } else {
-                    self.error = Some(format!(
-                        "Git est introuvable sur cet ordinateur. Installez-le depuis https://git-scm.com puis relancez l'application. ({})",
-                        record.error_summary()
-                    ));
+                    self.error =
+                        Some(t!("error.git_missing", detail = record.error_summary()).into_owned());
                 }
                 self.log(record);
                 Task::none()
             }
-            Message::PickRepoFolder => {
-                Task::perform(pick_folder("Ouvrir un dépôt"), Message::RepoFolderPicked)
-            }
+            Message::PickRepoFolder => Task::perform(
+                pick_folder(t!("dialog.open_repo").into_owned()),
+                Message::RepoFolderPicked,
+            ),
             Message::RepoFolderPicked(None) => Task::none(),
             Message::RepoFolderPicked(Some(dir)) => self.open(dir),
             Message::Opened(result, record) => {
@@ -187,7 +195,7 @@ impl App {
                 Task::none()
             }
             Message::PickCloneParent => Task::perform(
-                pick_folder("Dossier où créer la copie"),
+                pick_folder(t!("dialog.clone_parent").into_owned()),
                 Message::CloneParentPicked,
             ),
             Message::CloneParentPicked(dir) => {
@@ -204,13 +212,11 @@ impl App {
                 let url = self.clone_url.trim().to_string();
                 let dest = parent.join(repo::clone_folder_name(&url));
                 if dest.exists() {
-                    self.error = Some(format!(
-                        "Le dossier {} existe déjà. Choisissez un autre emplacement.",
-                        dest.display()
-                    ));
+                    self.error =
+                        Some(t!("error.folder_exists", path = dest.display()).into_owned());
                     return Task::none();
                 }
-                self.busy = Some(format!("Copie de {url} en cours…"));
+                self.busy = Some(t!("busy.cloning", url = url).into_owned());
                 self.error = None;
                 let command = repo::clone_command(&url, &dest);
                 Task::perform(run(command), move |record| {
@@ -221,7 +227,9 @@ impl App {
                 self.busy = None;
                 let ok = record.success();
                 if !ok {
-                    self.error = Some(format!("La copie a échoué : {}", record.error_summary()));
+                    self.error = Some(
+                        t!("error.clone_failed", detail = record.error_summary()).into_owned(),
+                    );
                 }
                 self.log(record);
                 if ok {
@@ -256,7 +264,7 @@ impl App {
                 if let Some(repo) = &self.repo {
                     command = command.in_dir(&repo.paths.root);
                 }
-                self.busy = Some(format!("{} en cours…", command.display()));
+                self.busy = Some(t!("busy.running", command = command.display()).into_owned());
                 self.console_input.clear();
                 Task::perform(run(command), Message::ConsoleDone)
             }
@@ -270,6 +278,11 @@ impl App {
             }
             Message::ClearJournal => {
                 self.journal.clear();
+                Task::none()
+            }
+            Message::SetLanguage(lang) => {
+                i18n::set(lang);
+                self.lang = Some(lang);
                 Task::none()
             }
             Message::DismissError => {
@@ -288,7 +301,7 @@ impl App {
     }
 
     fn open(&mut self, dir: PathBuf) -> Task<Message> {
-        self.busy = Some("Ouverture du dépôt…".to_string());
+        self.busy = Some(t!("busy.opening").into_owned());
         Task::perform(
             async move { repo::discover(&dir).await },
             |(result, record)| Message::Opened(result, record),
@@ -331,7 +344,7 @@ impl App {
                 container(
                     row![
                         text(error).width(Length::Fill),
-                        button("OK")
+                        button(text(t!("common.ok")))
                             .on_press(Message::DismissError)
                             .style(button::text),
                     ]
@@ -370,21 +383,32 @@ impl App {
                         .width(Length::Fill),
                 )
                 .push(
-                    button("Rafraîchir")
+                    button(text(t!("toolbar.refresh")))
                         .on_press_maybe(self.idle().then_some(Message::Refresh))
                         .style(button::secondary),
                 )
                 .push(
-                    button("Fermer le dépôt")
+                    button(text(t!("toolbar.close")))
                         .on_press_maybe(self.idle().then_some(Message::CloseRepo))
                         .style(button::secondary),
                 );
         } else {
             bar = bar.push(space::horizontal());
         }
+        for lang in Lang::ALL {
+            bar = bar.push(
+                button(text(lang.label()).size(13))
+                    .on_press(Message::SetLanguage(lang))
+                    .style(if self.lang == Some(lang) {
+                        button::primary
+                    } else {
+                        button::text
+                    }),
+            );
+        }
         bar = bar.push(
             checkbox(self.advanced)
-                .label("Mode avancé")
+                .label(t!("toolbar.advanced"))
                 .on_toggle(Message::ToggleAdvanced),
         );
         container(bar)
@@ -400,36 +424,35 @@ impl App {
 
     fn welcome_view(&self) -> Element<'_, Message> {
         let open = column![
-            text("Ouvrir un dépôt existant").size(18),
-            text("Choisissez le dossier d'un projet déjà suivi par Git."),
-            button("Choisir un dossier…")
+            text(t!("welcome.open_title")).size(18),
+            text(t!("welcome.open_hint")),
+            button(text(t!("welcome.pick_folder")))
                 .on_press_maybe(self.idle().then_some(Message::PickRepoFolder)),
         ]
         .spacing(8);
 
         let parent = match &self.clone_parent {
             Some(p) => p.display().to_string(),
-            None => "Aucun dossier choisi".to_string(),
+            None => t!("welcome.no_folder").into_owned(),
         };
         let can_clone =
             self.idle() && self.clone_parent.is_some() && !self.clone_url.trim().is_empty();
         let destination = match (&self.clone_parent, self.clone_url.trim()) {
-            (Some(p), url) if !url.is_empty() => {
-                format!(
-                    "Le projet sera copié dans {}",
-                    p.join(repo::clone_folder_name(url)).display()
-                )
-            }
+            (Some(p), url) if !url.is_empty() => t!(
+                "welcome.clone_destination",
+                path = p.join(repo::clone_folder_name(url)).display()
+            )
+            .into_owned(),
             _ => String::new(),
         };
         let clone = column![
-            text("Récupérer un projet depuis un serveur").size(18),
-            text("Collez l'adresse du dépôt (GitHub, GitLab…) pour en créer une copie sur cet ordinateur."),
-            text_input("https://github.com/equipe/projet.git", &self.clone_url)
+            text(t!("welcome.clone_title")).size(18),
+            text(t!("welcome.clone_hint")),
+            text_input(&t!("welcome.clone_placeholder"), &self.clone_url)
                 .on_input(Message::CloneUrlChanged)
                 .on_submit_maybe(can_clone.then_some(Message::StartClone)),
             row![
-                button("Choisir où le copier…")
+                button(text(t!("welcome.pick_parent")))
                     .on_press_maybe(self.idle().then_some(Message::PickCloneParent))
                     .style(button::secondary),
                 text(parent),
@@ -437,14 +460,15 @@ impl App {
             .spacing(10)
             .align_y(Alignment::Center),
             text(destination).size(14),
-            button("Copier le projet").on_press_maybe(can_clone.then_some(Message::StartClone)),
+            button(text(t!("welcome.clone_button")))
+                .on_press_maybe(can_clone.then_some(Message::StartClone)),
         ]
         .spacing(8);
 
         let version = text(
             self.git_version
                 .clone()
-                .unwrap_or_else(|| "Recherche de git…".to_string()),
+                .unwrap_or_else(|| t!("welcome.git_searching").into_owned()),
         )
         .size(12);
 
@@ -463,7 +487,7 @@ impl App {
         }
         if let Some(op) = repo.operation {
             header = header.push(
-                container(text(op.describe()))
+                container(text(tr(op.key())))
                     .padding(8)
                     .width(Length::Fill)
                     .style(container::warning),
@@ -471,15 +495,15 @@ impl App {
         }
 
         let tabs = row![
-            tab_button("Modifications", Tab::Changes, repo.tab),
-            tab_button("Historique", Tab::History, repo.tab),
+            tab_button(t!("repo.tab_changes"), Tab::Changes, repo.tab),
+            tab_button(t!("repo.tab_history"), Tab::History, repo.tab),
         ]
         .spacing(4);
 
         let body = match repo.tab {
             Tab::Changes => match &repo.status {
                 Some(status) => self.changes_view(status),
-                None => text("Lecture de l'état du dépôt…").into(),
+                None => text(t!("repo.reading_status")).into(),
             },
             Tab::History => self.history_view(&repo.commits),
         };
@@ -503,27 +527,23 @@ impl App {
 
         if conflicts.is_empty() && staged.is_empty() && unstaged.is_empty() && untracked.is_empty()
         {
-            return text("Aucune modification : tout est enregistré.").into();
+            return text(t!("changes.none")).into();
         }
 
         let mut list = column![].spacing(14);
-        for (title, hint, entries) in [
-            ("En conflit", "à résoudre avant de continuer", conflicts),
-            ("Prêt à être enregistré", "git : indexé, « staged »", staged),
-            ("Modifié", "git : non indexé, « unstaged »", unstaged),
-            (
-                "Nouveaux fichiers",
-                "git : non suivis, « untracked »",
-                untracked,
-            ),
+        for (key, entries) in [
+            ("changes.conflicts", conflicts),
+            ("changes.staged", staged),
+            ("changes.unstaged", unstaged),
+            ("changes.untracked", untracked),
         ] {
             if entries.is_empty() {
                 continue;
             }
             let mut group = column![
                 row![
-                    text(format!("{title} ({})", entries.len())).size(16),
-                    text(hint).size(12),
+                    text(format!("{} ({})", tr(key), entries.len())).size(16),
+                    text(tr(&format!("{key}_hint"))).size(12),
                 ]
                 .spacing(8)
                 .align_y(Alignment::Center)
@@ -544,7 +564,7 @@ impl App {
         };
         let mut line = row![
             text(path).font(Font::MONOSPACE).width(Length::Fill),
-            text(entry.describe()).size(14),
+            text(tr(entry.state_key())).size(14),
         ]
         .spacing(12);
         if self.advanced {
@@ -555,7 +575,7 @@ impl App {
 
     fn history_view<'a>(&'a self, commits: &'a [Commit]) -> Element<'a, Message> {
         if commits.is_empty() {
-            return text("Aucun commit pour l'instant.").into();
+            return text(t!("history.none")).into();
         }
         let mut list = column![].spacing(2);
         for commit in commits {
@@ -580,8 +600,8 @@ impl App {
 
     fn journal_view(&self) -> Element<'_, Message> {
         let mut header = row![
-            text("Journal Git").size(16),
-            text("chaque action de l'application correspond à ces commandes").size(12),
+            text(t!("journal.title")).size(16),
+            text(t!("journal.hint")).size(12),
             space::horizontal(),
         ]
         .spacing(10)
@@ -589,12 +609,12 @@ impl App {
         if self.advanced {
             header = header.push(
                 checkbox(self.show_background)
-                    .label("Afficher les actualisations automatiques")
+                    .label(t!("journal.show_background"))
                     .on_toggle(Message::ToggleBackground),
             );
         }
         header = header.push(
-            button("Vider")
+            button(text(t!("journal.clear")))
                 .on_press(Message::ClearJournal)
                 .style(button::text),
         );
@@ -621,11 +641,11 @@ impl App {
             panel = panel.push(
                 row![
                     text("git").font(Font::MONOSPACE),
-                    text_input("status, log --oneline, fetch…", &self.console_input)
+                    text_input(&t!("journal.console_placeholder"), &self.console_input)
                         .font(Font::MONOSPACE)
                         .on_input(Message::ConsoleChanged)
                         .on_submit_maybe(self.idle().then_some(Message::ConsoleSubmit)),
-                    button("Exécuter")
+                    button(text(t!("journal.run")))
                         .on_press_maybe(self.idle().then_some(Message::ConsoleSubmit)),
                 ]
                 .spacing(8)
@@ -676,21 +696,18 @@ impl App {
 fn branch_summary(status: &Status) -> Element<'_, Message> {
     let branch = &status.branch;
     let name = match (&branch.head, &branch.oid) {
-        (Some(head), _) => format!("Branche : {head}"),
-        (None, Some(oid)) => format!(
-            "Aucune branche active (HEAD détaché sur le commit {})",
-            &oid[..oid.len().min(8)]
-        ),
-        (None, None) => "Aucune branche".to_string(),
+        (Some(head), _) => t!("branch.current", name = head),
+        (None, Some(oid)) => t!("branch.detached", oid = &oid[..oid.len().min(8)]),
+        (None, None) => t!("branch.none"),
     };
     let sync = match &branch.upstream {
-        None if branch.oid.is_none() => "Aucun commit pour l'instant".to_string(),
-        None => "Pas encore publiée sur le serveur".to_string(),
+        None if branch.oid.is_none() => t!("sync.no_commits"),
+        None => t!("sync.unpublished"),
         Some(up) => match (branch.ahead, branch.behind) {
-            (0, 0) => format!("À jour avec {up}"),
-            (a, 0) => format!("{a} commit(s) à envoyer vers {up}"),
-            (0, b) => format!("{b} commit(s) à récupérer depuis {up}"),
-            (a, b) => format!("{a} commit(s) à envoyer et {b} à récupérer ({up})"),
+            (0, 0) => t!("sync.up_to_date", upstream = up),
+            (a, 0) => t!("sync.ahead", ahead = a, upstream = up),
+            (0, b) => t!("sync.behind", behind = b, upstream = up),
+            (a, b) => t!("sync.both", ahead = a, behind = b, upstream = up),
         },
     };
     row![text(name).size(18), text(sync).size(14)]
@@ -699,7 +716,7 @@ fn branch_summary(status: &Status) -> Element<'_, Message> {
         .into()
 }
 
-fn tab_button(label: &str, tab: Tab, current: Tab) -> Element<'_, Message> {
+fn tab_button(label: Cow<'_, str>, tab: Tab, current: Tab) -> Element<'_, Message> {
     button(text(label))
         .on_press(Message::SelectTab(tab))
         .style(if tab == current {
@@ -723,23 +740,24 @@ fn clip(s: &str, max_lines: usize) -> String {
         s.to_string()
     } else {
         format!(
-            "{}\n… ({} lignes de plus)",
+            "{}\n{}",
             lines[..max_lines].join("\n"),
-            lines.len() - max_lines
+            t!("journal.more_lines", count = lines.len() - max_lines)
         )
     }
 }
 
 /// Splits a console line into git arguments; a leading `git` is optional.
 fn parse_console(input: &str) -> Result<Vec<String>, String> {
-    let mut args = shell_words::split(input).map_err(|e| format!("Commande mal formée : {e}"))?;
+    let mut args = shell_words::split(input)
+        .map_err(|e| t!("error.console_malformed", detail = e).into_owned())?;
     if args.first().map(String::as_str) == Some("git") {
         args.remove(0);
     }
     Ok(args)
 }
 
-async fn pick_folder(title: &'static str) -> Option<PathBuf> {
+async fn pick_folder(title: String) -> Option<PathBuf> {
     rfd::AsyncFileDialog::new()
         .set_title(title)
         .pick_folder()
@@ -767,6 +785,6 @@ mod tests {
     #[test]
     fn clip_limits_lines() {
         assert_eq!(clip("a\nb", 5), "a\nb");
-        assert_eq!(clip("a\nb\nc", 2), "a\nb\n… (1 lignes de plus)");
+        assert!(clip("a\nb\nc", 2).starts_with("a\nb\n"));
     }
 }

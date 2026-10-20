@@ -2,7 +2,7 @@
 
 Public : une équipe hardware/VHDL et une équipe design, qui ne connaissent pas Git, ainsi que
 des utilisateurs avertis. Règle générale : les choix guidés ne cachent jamais la commande git
-correspondante.
+correspondante. L'interface est en anglais et en français.
 
 ## 1. Socle
 App Rust + iced qui appelle le `git` CLI en arrière-plan avec timeout (aucun gel possible).

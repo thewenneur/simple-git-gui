@@ -16,12 +16,13 @@ pub enum Operation {
 }
 
 impl Operation {
-    pub fn describe(self) -> &'static str {
+    /// Translation key of the operation's description.
+    pub fn key(self) -> &'static str {
         match self {
-            Operation::Merge => "Une fusion (merge) est en cours",
-            Operation::Rebase => "Une mise à jour de branche (rebase) est en cours",
-            Operation::CherryPick => "Une copie de commit (cherry-pick) est en cours",
-            Operation::Revert => "Une annulation de commit (revert) est en cours",
+            Operation::Merge => "op.merge",
+            Operation::Rebase => "op.rebase",
+            Operation::CherryPick => "op.cherry_pick",
+            Operation::Revert => "op.revert",
         }
     }
 }
@@ -42,7 +43,7 @@ pub async fn discover(dir: &Path) -> (Result<RepoPaths, String>, CommandRecord) 
             .await;
     if !record.success() {
         let msg = if record.stderr.contains("not a git repository") {
-            "Ce dossier n'est pas un dépôt Git.".to_string()
+            t!("repo.not_a_repo").into_owned()
         } else {
             record.error_summary()
         };
@@ -54,7 +55,7 @@ pub async fn discover(dir: &Path) -> (Result<RepoPaths, String>, CommandRecord) 
             root: PathBuf::from(root),
             git_dir: PathBuf::from(git_dir),
         }),
-        _ => Err("Réponse inattendue de git rev-parse.".to_string()),
+        _ => Err(t!("repo.bad_rev_parse").into_owned()),
     };
     (result, record)
 }
@@ -231,7 +232,8 @@ mod tests {
     #[tokio::test]
     async fn discover_rejects_plain_folder() {
         let dir = tempfile::tempdir().unwrap();
-        let (result, _) = discover(dir.path()).await;
-        assert_eq!(result.unwrap_err(), "Ce dossier n'est pas un dépôt Git.");
+        let (result, record) = discover(dir.path()).await;
+        assert!(result.is_err());
+        assert!(record.stderr.contains("not a git repository"));
     }
 }
