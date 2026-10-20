@@ -27,7 +27,8 @@ First release.
   when Windows and Linux endings got mixed.
 - History and branches: a graph of every branch, commit details, comparing two commits,
   browsing the project at a commit, and drag and drop to merge, move (rebase),
-  cherry-pick, reorder or squash commits, each confirmed with its git command.
+  cherry-pick, reorder or squash commits, each confirmed with its git command (when
+  both a merge and a rebase fit, the confirmation lets you pick one).
 - A conflict assistant that names each side by its branch instead of "ours" and
   "theirs", with fewer false conflicts and duplicated moved blocks.
 - Submodules (state, update, open) and Git LFS file locks.
