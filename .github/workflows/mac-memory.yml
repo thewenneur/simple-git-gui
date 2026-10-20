@@ -1,0 +1,46 @@
+# Temporary probe: measures the app's memory on a real macOS session.
+name: macOS memory probe
+
+on:
+  push:
+    branches: [claude/project-thread-uw9h8t]
+
+jobs:
+  probe:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: false
+      - run: cargo build --release && cp target/release/simple-git-gui /tmp/current
+      - run: |
+          git worktree add /tmp/old 892cc86
+          cd /tmp/old && cargo build --release && cp target/release/simple-git-gui /tmp/old-wgpu
+      - name: Measure
+        run: |
+          git clone -q . /tmp/repo
+          measure() {
+            label=$1; shift
+            "$@" /tmp/repo & pid=$!
+            sleep 20
+            echo "=== $label after 20s"
+            footprint $pid | head -40 || true
+            vmmap --summary $pid | sed -n '/REGION TYPE/,/TOTAL/p' || true
+            screencapture -x "/tmp/$label.png" || true
+            sleep 60
+            echo "=== $label after 80s"
+            footprint $pid | head -8 || true
+            kill $pid; sleep 2
+          }
+          measure current /tmp/current
+          measure old-wgpu /tmp/old-wgpu
+          ICED_BACKEND=tiny-skia measure old-tiny-skia /tmp/old-wgpu
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screens
+          path: /tmp/*.png
