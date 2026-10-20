@@ -1,43 +1,48 @@
 # Plan
 
-Public : une équipe hardware/VHDL et une équipe design, qui ne connaissent pas Git, ainsi que
-des utilisateurs avertis. Règle générale : les choix guidés ne cachent jamais la commande git
-correspondante. L'interface est en anglais et en français.
-Visuel cible : les maquettes validées (https://claude.ai/artifact/P4D9EvkYgPTQtZDBw82EjJ).
+Audience: a hardware/VHDL team and a design team who don't know Git, plus experienced
+users. General rule: guided choices never hide the matching git command. The interface is
+in English and French.
+Target visual: the approved wireframes (https://claude.ai/artifact/P4D9EvkYgPTQtZDBw82EjJ).
 
-## 1. Socle
-App Rust + iced qui appelle le `git` CLI en arrière-plan avec timeout (aucun gel possible).
-Journal Git de toutes les commandes, console en mode avancé. Ouvrir/cloner un dépôt,
-état des fichiers, historique.
+## 1. Foundation
+Rust + iced app that calls the `git` CLI in the background with a timeout (no freeze
+possible). Git log panel of every command, console in advanced mode. Open/clone a
+repository, file status, history.
 
-## 2. Gestes de base
-- Diffs lisibles, lignes déplacées affichées comme déplacées (`--color-moved`, histogram).
-- Choisir ce qu'on garde, « Enregistrer » (commit), « Envoyer » (fetch → intégration → push).
-- **Ctrl+Z / Ctrl+Y pour toute action** : instantané des refs, de l'index et des fichiers
-  avant chaque action. Un push ne s'annule que par revert ou force push explicite.
-- **Menu « Configuration Git » expliqué** : chaque réglage décrit, clé git visible,
-  portée globale ou dépôt (identité, stratégie de pull, `core.autocrlf`, style de conflit,
-  `rerere`, identifiants…).
+## 2. Everyday actions
+- Readable diffs, moved lines shown as moved (`--color-moved`, histogram).
+- Choose what to keep, "Save" (commit), "Send" (fetch → integrate → push).
+- **Ctrl+Z / Ctrl+Y for every action**: snapshot of refs, index and files before each
+  action. A push can only be undone by a revert or an explicit force push.
+- **Explained "Git configuration" menu**: every setting described, git key visible,
+  global or repository scope (identity, pull strategy, `core.autocrlf`, conflict style,
+  `rerere`, credentials…).
+- **Ignore any file**: right-click a file in the changes list → "Ignore this file",
+  "Ignore all `*.ext`" or "Ignore this folder". The line is added to `.gitignore` (shared)
+  or to `.git/info/exclude` (just for me), and the added line is shown. If the file is
+  already tracked, also offers `git rm --cached` to stop tracking it without deleting it
+  from disk. Undoable with Ctrl+Z.
 
-## 3. Branches, conflits et vue en arbre
-- Assistants merge/rebase. Jamais « ours/theirs » : chaque côté porte le nom de sa branche,
-  dans le bon sens pour un merge comme pour un rebase.
-- Moins de faux conflits : histogram, `zdiff3`, `rerere`, option d'ignorer les espaces,
-  fins de ligne normalisées. Merge d'abord en `--no-commit`, puis détection des blocs
-  dupliqués (ligne déplacée d'un côté) avant d'enregistrer.
-- Vue en arbre avec glisser-déposer, confirmation affichant la commande exacte :
-  - commit de départ d'une branche déposé sur un autre commit → rebase ;
-  - commit déposé sur le dernier commit d'une autre branche → merge ;
-  - double-clic sur une branche → checkout avec autostash par branche (`auto/<branche>`) ;
-  - étiquette de branche glissée sur un commit → déplacer la branche (sauvegarde avant) ;
-  - Ctrl + glisser un commit sur une branche → cherry-pick ;
-  - glisser un commit sur son voisin → réordonner / squash (rebase interactif piloté) ;
-  - branche locale ↔ distante → push (avec pull avant) / pull ;
-  - clic droit : branche ou tag ici, diff, revert, modifier le message, restaurer un fichier ;
-  - deux commits sélectionnés → comparaison ;
-  - suppression de branche sécurisée ; bandeau HEAD détaché avec « créer une branche ici ».
+## 3. Branches, conflicts and tree view
+- Merge/rebase wizards. Never "ours/theirs": each side carries its branch name, the right
+  way round for a merge as well as for a rebase.
+- Fewer false conflicts: histogram, `zdiff3`, `rerere`, option to ignore whitespace,
+  normalized line endings. Merge first with `--no-commit`, then detect duplicated blocks
+  (a line moved on one side) before saving.
+- Tree view with drag and drop, with a confirmation showing the exact command:
+  - a branch's start commit dropped on another commit → rebase;
+  - a commit dropped on the last commit of another branch → merge;
+  - double-click a branch → checkout with per-branch autostash (`auto/<branch>`);
+  - branch label dragged onto a commit → move the branch (backup first);
+  - Ctrl + drag a commit onto a branch → cherry-pick;
+  - drag a commit onto its neighbour → reorder / squash (driven interactive rebase);
+  - local ↔ remote branch → push (with pull first) / pull;
+  - right-click: branch or tag here, diff, revert, edit message, restore a file;
+  - two commits selected → comparison;
+  - safe branch deletion; detached HEAD banner with "create a branch here".
 
-## 4. Sous-modules et métiers
-Sous-modules (ajout, mise à jour, synchro, état), Git LFS et verrouillage pour les binaires
-design, modèles `.gitignore` Vivado/Quartus, exécutables portables Windows/macOS/Linux via
+## 4. Submodules and trade-specific needs
+Submodules (add, update, sync, status), Git LFS and file locking for design binaries,
+Vivado/Quartus `.gitignore` templates, portable Windows/macOS/Linux executables via
 GitHub Actions.

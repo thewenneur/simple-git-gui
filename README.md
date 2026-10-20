@@ -1,48 +1,50 @@
 # Simple Git
 
-Une interface graphique pour Git pensée pour les personnes qui ne connaissent pas Git
-(équipes hardware/VHDL et design), sans rien cacher aux utilisateurs avertis : chaque
-action guidée affiche la commande `git` exacte qu'elle exécute.
+A graphical interface for Git designed for people who don't know Git (hardware/VHDL and
+design teams), without hiding anything from experienced users: every guided action shows
+the exact `git` command it runs.
 
-Application de bureau portable écrite en Rust avec [iced](https://iced.rs). Elle utilise
-le `git` installé sur la machine (pas de libgit2).
+A portable desktop application written in Rust with [iced](https://iced.rs). It uses the
+`git` installed on the machine (no libgit2).
 
-## Prérequis
+## Requirements
 
-- [Git](https://git-scm.com) installé et accessible dans le `PATH`.
-- Pour compiler : Rust stable (`rustup`).
+- [Git](https://git-scm.com) installed and available in the `PATH`.
+- To build: stable Rust (`rustup`).
 
-## Lancer
+## Running
 
 ```sh
-cargo run --release              # écran d'accueil : ouvrir ou cloner un dépôt
-cargo run --release -- ~/projet  # ouvre directement ce dépôt
+cargo run --release                 # welcome screen: open or clone a repository
+cargo run --release -- ~/project    # opens this repository directly
 ```
 
-## Ce que fait la version actuelle
+## What the current version does
 
-- Interface en français et en anglais (langue du système par défaut, bouton FR/EN).
-- Style des maquettes validées : polices IBM Plex intégrées, thème clair et sombre qui suit
-  le système (forçable avec `SIMPLE_GIT_THEME=dark` ou `light`).
-- Ouvrir un dépôt existant ou en cloner un (sous-modules compris).
-- Voir la branche courante, son état par rapport au serveur et les fichiers modifiés,
-  en clair avec la notation git en mode avancé.
-- Historique des commits de toutes les branches.
-- **Journal Git** : chaque commande lancée, son résultat et sa durée. En mode avancé :
-  sorties complètes et console pour taper ses propres commandes git.
-- Git ne peut jamais bloquer l'interface : chaque commande tourne en arrière-plan, sans
-  terminal ni éditeur, et est arrêtée après un délai maximum.
+- Interface in English and French (system language by default, FR/EN switch).
+- Style of the approved wireframes: embedded IBM Plex fonts, light and dark themes that
+  follow the system (can be forced with `SIMPLE_GIT_THEME=dark` or `light`).
+- Open an existing repository or clone one (submodules included).
+- See the current branch, how it stands against the server, and the changed files, in
+  plain words, with the git notation in advanced mode.
+- Commit history of all branches.
+- **Git log panel**: every command run, its result and its duration. In advanced mode:
+  full outputs and a console to type your own git commands.
+- Git can never freeze the interface: every command runs in the background, without a
+  terminal or an editor, and is stopped after a maximum delay.
 
-## Organisation du code
+The roadmap is in [docs/PLAN.md](docs/PLAN.md).
 
-- `src/git/runner.rs` : seul endroit qui lance `git` (timeout, environnement non interactif).
-- `src/git/status.rs` : lecture de `git status --porcelain=v2`.
-- `src/git/repo.rs` : requêtes sur un dépôt (ouverture, historique, clone, opération en cours).
-- `src/app.rs` : état de l'application et écrans.
-- `src/ui/style.rs` : palettes claire et sombre, polices et styles des composants ; `src/ui/icons.rs` : icônes.
-- `assets/fonts/` : IBM Plex Sans et Mono (licence SIL OFL 1.1, voir `OFL.txt`).
-- `locales/app.yml` : tous les textes, en anglais et en français côte à côte. Un test vérifie
-  que chaque clé existe dans les deux langues et que chaque clé utilisée dans le code existe.
+## Code layout
+
+- `src/git/runner.rs`: the only place that runs `git` (timeout, non-interactive environment).
+- `src/git/status.rs`: parsing of `git status --porcelain=v2`.
+- `src/git/repo.rs`: queries on a repository (opening, history, clone, operation in progress).
+- `src/app.rs`: application state and screens.
+- `src/ui/style.rs`: light and dark palettes, fonts and widget styles; `src/ui/icons.rs`: icons.
+- `assets/fonts/`: IBM Plex Sans and Mono (SIL OFL 1.1 license, see `OFL.txt`).
+- `locales/app.yml`: every UI text, in English and French side by side. A test checks that
+  every key exists in both languages and that every key used in the code exists.
 
 ## Tests
 
@@ -50,4 +52,4 @@ cargo run --release -- ~/projet  # ouvre directement ce dépôt
 cargo test
 ```
 
-Certains tests créent de vrais dépôts temporaires et exécutent `git`.
+Some tests create real temporary repositories and run `git`.
