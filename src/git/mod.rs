@@ -17,3 +17,4 @@ pub mod status;
 pub mod submodules;
 pub mod templates;
 pub mod undo;
+pub mod worktrees;

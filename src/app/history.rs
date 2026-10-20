@@ -434,6 +434,25 @@ impl App {
         let Some(repo) = &self.repo else {
             return Task::none();
         };
+        // Git refuses a branch open in another workspace: say so without
+        // setting the changes aside for nothing.
+        if let Target::Branch(name) = &target
+            && let Some(other) = repo
+                .worktrees
+                .holding(name)
+                .filter(|t| t.path != repo.paths.root)
+        {
+            let path = other.path.clone();
+            self.error = Some(
+                t!(
+                    "workspaces.switch_refused",
+                    folder = super::folder_name(&path)
+                )
+                .into_owned(),
+            );
+            self.elsewhere = Some(path);
+            return Task::none();
+        }
         let root = repo.paths.root.clone();
         let shown = match &target {
             Target::Branch(name) => name.clone(),
@@ -725,6 +744,7 @@ impl App {
             && history.hover.as_ref().is_some_and(|h| match h {
                 super::dragdrop::Grip::Commit(hash) => *hash == commit.hash,
                 super::dragdrop::Grip::Branch(name) => commit.refs.contains(name),
+                super::dragdrop::Grip::Workspaces => false,
             });
         let row = if drop_here {
             row.style(style::drop_target)

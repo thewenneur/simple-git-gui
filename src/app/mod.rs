@@ -13,6 +13,7 @@ mod modules;
 mod remotes;
 mod sync;
 mod undo;
+mod worktrees;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -96,6 +97,8 @@ pub struct App {
     new_repo: remotes::NewRepo,
     /// The folder being opened.
     opening: Option<PathBuf>,
+    /// The workspace that has the branch git refused to switch to.
+    elsewhere: Option<PathBuf>,
 }
 
 struct OpenRepo {
@@ -125,6 +128,7 @@ struct OpenRepo {
     after_check: Option<integrate::AfterCheck>,
     modules: modules::ModulesState,
     remotes_state: remotes::RemotesState,
+    worktrees: worktrees::WorktreesState,
     /// The repository this one was opened from (as one of its submodules).
     parent: Option<PathBuf>,
     /// A background refresh is running; avoids piling them up.
@@ -160,6 +164,7 @@ impl OpenRepo {
             after_check: None,
             modules: modules::ModulesState::default(),
             remotes_state: remotes::RemotesState::default(),
+            worktrees: worktrees::WorktreesState::default(),
             parent: None,
             refreshing: false,
             generation: 0,
@@ -205,6 +210,8 @@ pub enum Action {
     Remote,
     /// Checking that a server answers.
     RemoteTest,
+    /// Adding, removing, locking or pruning workspaces (worktrees).
+    Workspace,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -213,6 +220,7 @@ pub enum Section {
     History,
     Submodules,
     Locks,
+    Workspaces,
     Config,
 }
 
@@ -338,6 +346,7 @@ pub enum Message {
     Proceeded(Vec<CommandRecord>, bool),
     Modules(modules::Msg),
     Remotes(remotes::Msg),
+    Worktrees(worktrees::Msg),
 }
 
 impl App {
@@ -426,6 +435,7 @@ impl App {
                         Task::batch([
                             self.refresh(false),
                             self.load_modules(modules::Reach::Local),
+                            self.load_worktrees(),
                         ])
                     }
                     Err(e) => {
@@ -619,6 +629,7 @@ impl App {
             }
             Message::DismissError => {
                 self.error = None;
+                self.elsewhere = None;
                 Task::none()
             }
             Message::DismissNotice => {
@@ -888,6 +899,7 @@ impl App {
             Message::Proceeded(records, still) => self.proceeded(records, still),
             Message::Modules(msg) => self.modules_update(msg),
             Message::Remotes(msg) => self.remotes_update(msg),
+            Message::Worktrees(msg) => self.worktrees_update(msg),
         }
     }
 
@@ -910,6 +922,7 @@ impl App {
         entry: Option<crate::git::undo::Entry>,
     ) -> Task<Message> {
         self.busy = None;
+        self.elsewhere = None;
         let succeeded = records.last().is_none_or(CommandRecord::success);
         if let Some(entry) = entry.filter(|_| succeeded) {
             self.record_undo(entry);
@@ -940,7 +953,20 @@ impl App {
         for record in records {
             self.log(record);
         }
+        let elsewhere = failed
+            .as_ref()
+            .and_then(|(_, _, stderr)| crate::git::worktrees::already_checked_out(stderr));
         match failed {
+            Some((_, _, stderr))
+                if action == Action::Workspace && stderr.contains("containing submodules") =>
+            {
+                self.error = Some(t!("workspaces.remove_submodules").into_owned());
+            }
+            Some(_) if elsewhere.is_some() => {
+                let folder = elsewhere.as_deref().map(folder_name).unwrap_or_default();
+                self.error = Some(t!("workspaces.switch_refused", folder = folder).into_owned());
+                self.elsewhere = elsewhere;
+            }
             Some((_, _, stderr))
                 if action == Action::Commit && ops::is_missing_identity(&stderr) =>
             {
@@ -1011,7 +1037,13 @@ impl App {
         } else {
             self.reload_section()
         };
-        Task::batch([self.refresh(false), section])
+        // Which branch each workspace has may have changed.
+        let workspaces = if self.repo.as_ref().map(|r| r.section) == Some(Section::Workspaces) {
+            Task::none()
+        } else {
+            self.load_worktrees()
+        };
+        Task::batch([self.refresh(false), section, workspaces])
     }
 
     /// Reads again what the current section shows besides the status.
@@ -1019,6 +1051,7 @@ impl App {
         match self.repo.as_ref().map(|r| r.section) {
             Some(Section::Config) => Task::batch([self.load_config(), self.load_remotes()]),
             Some(Section::Submodules | Section::Locks) => self.load_modules(modules::Reach::Local),
+            Some(Section::Workspaces) => self.load_worktrees(),
             _ => Task::none(),
         }
     }
@@ -1140,14 +1173,22 @@ impl App {
         if let Some(error) = &self.error {
             content = content.push(
                 container(
-                    row![
-                        text(error).width(Length::Fill),
-                        button(text(t!("common.ok")).font(sans(Weight::Semibold)))
-                            .on_press(Message::DismissError)
-                            .style(style::link),
-                    ]
-                    .align_y(Alignment::Center)
-                    .spacing(10),
+                    row![text(error).width(Length::Fill)]
+                        .push(self.elsewhere.clone().map(|path| {
+                            button(text(t!("workspaces.open_that")).font(sans(Weight::Semibold)))
+                                .on_press_maybe(
+                                    self.idle()
+                                        .then_some(Message::Worktrees(worktrees::Msg::Open(path))),
+                                )
+                                .style(style::link)
+                        }))
+                        .push(
+                            button(text(t!("common.ok")).font(sans(Weight::Semibold)))
+                                .on_press(Message::DismissError)
+                                .style(style::link),
+                        )
+                        .align_y(Alignment::Center)
+                        .spacing(10),
                 )
                 .padding([8, 12])
                 .width(Length::Fill)
@@ -1436,6 +1477,7 @@ impl App {
                 repo.section,
                 p,
             ),
+            self.workspaces_item(repo, p),
             nav_item(
                 Icon::Settings,
                 t!("nav.config").into_owned(),
@@ -1638,6 +1680,7 @@ impl App {
             (Section::History, _) => self.history_view(repo, p),
             (Section::Submodules, _) => self.submodules_view(repo, p),
             (Section::Locks, _) => self.locks_view(repo, p),
+            (Section::Workspaces, _) => self.worktrees_view(repo, p),
             (Section::Config, _) => self.config_view(repo, p),
         };
         view.push(section).into()
@@ -1892,6 +1935,36 @@ fn caption<'a>(label: String, p: &'static Palette) -> Element<'a, Message> {
     )
     .padding([4, 12])
     .into()
+}
+
+impl App {
+    /// The Workspaces item, where a branch or commit can be dropped to open
+    /// it in a new workspace.
+    fn workspaces_item<'a>(
+        &'a self,
+        repo: &'a OpenRepo,
+        p: &'static Palette,
+    ) -> Element<'a, Message> {
+        let item = nav_item(
+            Icon::Workspaces,
+            t!("nav.workspaces").into_owned(),
+            Some(repo.worktrees.attention()).filter(|n| *n > 0),
+            Section::Workspaces,
+            repo.section,
+            p,
+        );
+        let target = self.dragging().is_some()
+            && repo.history.hover.as_ref() == Some(&dragdrop::Grip::Workspaces);
+        let item = container(item);
+        mouse_area(if target {
+            item.style(style::drop_target)
+        } else {
+            item
+        })
+        .on_enter(Message::Hover(dragdrop::Grip::Workspaces))
+        .on_exit(Message::Unhover(dragdrop::Grip::Workspaces))
+        .into()
+    }
 }
 
 fn nav_item<'a>(

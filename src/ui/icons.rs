@@ -23,6 +23,7 @@ pub enum Icon {
     Warning,
     Submodule,
     Lock,
+    Workspaces,
 }
 
 impl Icon {
@@ -50,6 +51,9 @@ impl Icon {
             }
             Icon::Lock => {
                 r#"<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>"#
+            }
+            Icon::Workspaces => {
+                r#"<rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/><path d="M7 9v6M17 9v6"/>"#
             }
             Icon::Undo => r#"<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>"#,
             Icon::Redo => r#"<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/>"#,

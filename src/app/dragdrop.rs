@@ -24,6 +24,8 @@ pub enum Grip {
     Commit(String),
     /// A branch label, local (`main`) or remote (`origin/main`).
     Branch(String),
+    /// The Workspaces item of the sidebar (only a drop target).
+    Workspaces,
 }
 
 #[derive(Debug, Clone)]
@@ -69,6 +71,8 @@ pub enum DropPlan {
         older: String,
         newer: String,
     },
+    /// Opens the "New workspace" form on a branch or commit.
+    NewWorkspace(crate::git::worktrees::Start),
     /// The gesture means nothing here; the text says why.
     Refused(String),
 }
@@ -155,6 +159,7 @@ impl App {
                 .as_ref()
                 .and_then(|r| tip(r, name))
                 .map(String::from),
+            Grip::Workspaces => return Task::none(),
         };
         let Some(repo) = &mut self.repo else {
             return Task::none();
@@ -211,6 +216,7 @@ impl App {
                 self.notice = Some(reason);
                 Task::none()
             }
+            Some(DropPlan::NewWorkspace(start)) => self.new_workspace(Some(start)),
             Some(DropPlan::Integrate {
                 kind, other, after, ..
             }) => {
@@ -248,6 +254,27 @@ impl App {
         if grip == target || !self.idle() {
             return None;
         }
+        // Dropped on the Workspaces item: open it in a new workspace.
+        if *target == Grip::Workspaces {
+            use crate::git::worktrees::Start;
+            let start = match grip {
+                Grip::Commit(hash) => Start::Detached(hash.clone()),
+                Grip::Branch(name) if is_remote(repo, name) => {
+                    let local = local_name(repo, name);
+                    if repo.branches.iter().any(|b| !b.remote && b.name == local) {
+                        Start::Branch(local)
+                    } else {
+                        Start::NewBranch {
+                            name: local,
+                            at: name.clone(),
+                        }
+                    }
+                }
+                Grip::Branch(name) => Start::Branch(name.clone()),
+                Grip::Workspaces => return None,
+            };
+            return Some(DropPlan::NewWorkspace(start));
+        }
         if repo.operation.is_some() {
             return Some(DropPlan::Refused(t!("drop.busy").into_owned()));
         }
@@ -275,6 +302,7 @@ impl App {
         let (target_hash, target_branch) = match target {
             Grip::Commit(hash) => (hash.clone(), None),
             Grip::Branch(name) => (tip(repo, name)?.to_string(), Some(name.clone())),
+            Grip::Workspaces => return None,
         };
 
         match grip {
@@ -381,6 +409,7 @@ impl App {
                     )),
                 }
             }
+            Grip::Workspaces => None,
         }
     }
 
@@ -428,6 +457,16 @@ impl App {
                 t!("drop.label_pull", branch = local, remote = remote)
             }
             DropPlan::Rewrite { .. } => t!("drop.label_rewrite"),
+            DropPlan::NewWorkspace(start) => {
+                use crate::git::worktrees::Start;
+                match start {
+                    Start::Branch(branch) => t!("drop.label_workspace", what = branch),
+                    Start::NewBranch { name, .. } => t!("drop.label_workspace", what = name),
+                    Start::Detached(commit) => {
+                        t!("drop.label_workspace_commit", commit = short(commit))
+                    }
+                }
+            }
             DropPlan::Refused(reason) => reason.as_str().into(),
         }
         .into_owned()
@@ -495,7 +534,9 @@ impl App {
                 }
                 lines
             }
-            DropPlan::Integrate { .. } | DropPlan::Refused(_) => Vec::new(),
+            DropPlan::Integrate { .. } | DropPlan::NewWorkspace(_) | DropPlan::Refused(_) => {
+                Vec::new()
+            }
         }
     }
 
@@ -563,7 +604,9 @@ impl App {
                 .into_owned();
                 self.rewrite(edit, label)
             }
-            DropPlan::Integrate { .. } | DropPlan::Refused(_) => Task::none(),
+            DropPlan::Integrate { .. } | DropPlan::NewWorkspace(_) | DropPlan::Refused(_) => {
+                Task::none()
+            }
         }
     }
 
@@ -670,7 +713,7 @@ impl App {
                     t!("drop.swap_button")
                 },
             ),
-            DropPlan::Integrate { .. } | DropPlan::Refused(_) => {
+            DropPlan::Integrate { .. } | DropPlan::NewWorkspace(_) | DropPlan::Refused(_) => {
                 let label = self.plan_label(plan);
                 (label.clone().into(), label.into(), t!("common.ok"))
             }
@@ -688,6 +731,7 @@ impl App {
                 match &drag.grip {
                     Grip::Commit(hash) => t!("drop.drag_commit", commit = short(hash)),
                     Grip::Branch(name) => t!("drop.drag_branch", branch = name),
+                    Grip::Workspaces => return None,
                 }
                 .into_owned(),
                 false,
