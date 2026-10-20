@@ -157,6 +157,46 @@ pub fn cherry_pick(root: &Path, hash: &str, merge_commit: bool) -> GitCommand {
     GitCommand::new(args).in_dir(root)
 }
 
+/// Where a moved branch's old position is kept, just in case.
+pub fn backup_ref(name: &str) -> String {
+    format!("refs/backup/{name}")
+}
+
+/// Moves branch `name` to commit `to`, after saving where it was under
+/// [`backup_ref`]. The current branch moves with `reset --keep`, which
+/// refuses rather than lose local changes.
+pub fn move_branch(root: &Path, name: &str, to: &str, current: bool) -> Vec<GitCommand> {
+    let backup = backup_ref(name);
+    let save = GitCommand::new(["update-ref", backup.as_str(), name]).in_dir(root);
+    let moving = if current {
+        GitCommand::new(["reset", "--keep", to])
+    } else {
+        GitCommand::new(["branch", "-f", name, to])
+    };
+    vec![save, moving.in_dir(root)]
+}
+
+/// Sends local branch `local` to `remote_branch` (`origin/x`).
+pub fn push_branch(root: &Path, local: &str, remote_branch: &str) -> GitCommand {
+    let (remote, name) = remote_branch
+        .split_once('/')
+        .unwrap_or(("origin", remote_branch));
+    GitCommand::new(["push", remote, &format!("{local}:{name}")])
+        .in_dir(root)
+        .network()
+}
+
+/// Brings `remote_branch` into the local branch `local` (not the current
+/// one) when that is a fast-forward; git refuses otherwise.
+pub fn fast_forward_branch(root: &Path, local: &str, remote_branch: &str) -> GitCommand {
+    let (remote, name) = remote_branch
+        .split_once('/')
+        .unwrap_or(("origin", remote_branch));
+    GitCommand::new(["fetch", remote, &format!("{name}:{local}")])
+        .in_dir(root)
+        .network()
+}
+
 /// Adds a commit that undoes `hash`.
 pub fn revert(root: &Path, hash: &str, merge_commit: bool) -> GitCommand {
     let mut args = vec!["revert", "--no-edit"];

@@ -854,9 +854,9 @@ menu.reword:
 menu.reword_pushed:
   en: "Edit the message (already sent)"
   fr: "Modifier le message (déjà envoyé)"
-menu.reword_not_last:
-  en: "Edit the message (last commit only)"
-  fr: "Modifier le message (dernier commit seulement)"
+menu.reword_not_here:
+  en: "Edit the message (commits of your branch only)"
+  fr: "Modifier le message (commits de votre branche seulement)"
 menu.copy_id:
   en: "Copy the id"
   fr: "Copier l'identifiant"
@@ -1189,3 +1189,128 @@ integrate.conflict_started:
 integrate.after_title:
   en: "After the rebase, some blocks are found twice"
   fr: "Après le rebase, des blocs sont en double"
+
+# Drag and drop in the history
+busy.sending:
+  en: "Sending…"
+  fr: "Envoi…"
+busy.rewriting:
+  en: "Rewriting the commits…"
+  fr: "Réécriture des commits…"
+undo.move_branch:
+  en: "Moving %{branch} to %{commit}"
+  fr: "Le déplacement de %{branch} sur %{commit}"
+undo.pull_branch:
+  en: "Getting %{branch}"
+  fr: "La récupération de %{branch}"
+undo.squash:
+  en: "Squashing %{commit} into %{into}"
+  fr: "La fusion de %{commit} dans %{into}"
+undo.swap:
+  en: "Swapping %{first} and %{second}"
+  fr: "L'échange de %{first} et %{second}"
+drop.busy:
+  en: "Finish or stop the operation in progress first."
+  fr: "Terminez ou arrêtez d'abord l'opération en cours."
+drop.remote_moves:
+  en: "%{branch} is on the server: it moves when someone sends to it. Drop it on your own branch to get it."
+  fr: "%{branch} est sur le serveur : elle bouge quand quelqu'un y envoie. Déposez-la sur votre branche pour la récupérer."
+drop.cherry_pick_elsewhere:
+  en: "To copy a commit onto %{branch}, go onto %{branch} first."
+  fr: "Pour copier un commit sur %{branch}, allez d'abord sur %{branch}."
+drop.not_neighbours:
+  en: "Only two neighbouring commits can be swapped or squashed."
+  fr: "Seuls deux commits voisins peuvent être échangés ou fusionnés."
+drop.merge_inside:
+  en: "There is a merge among these commits: they can't be rewritten here."
+  fr: "Il y a une fusion parmi ces commits : ils ne peuvent pas être réécrits ici."
+drop.already_sent:
+  en: "These commits are already on the server: rewriting them would disturb your colleagues."
+  fr: "Ces commits sont déjà sur le serveur : les réécrire gênerait vos collègues."
+drop.go_there_first:
+  en: "To bring this into %{branch}, go onto %{branch} first (double-click it)."
+  fr: "Pour intégrer ceci dans %{branch}, allez d'abord sur %{branch} (double-clic)."
+drop.label_merge:
+  en: "Merge %{branch} into %{into}"
+  fr: "Fusionner %{branch} dans %{into}"
+drop.label_rebase:
+  en: "Replay %{branch} after %{onto}"
+  fr: "Rejouer %{branch} après %{onto}"
+drop.label_rebase_from:
+  en: "Move the commits from %{commit} onto %{onto}"
+  fr: "Déplacer les commits à partir de %{commit} sur %{onto}"
+drop.label_cherry_pick:
+  en: "Copy %{commit} onto %{onto}"
+  fr: "Copier %{commit} sur %{onto}"
+drop.label_move:
+  en: "Move %{branch} to %{commit}"
+  fr: "Déplacer %{branch} sur %{commit}"
+drop.label_push:
+  en: "Send %{branch} to %{remote}"
+  fr: "Envoyer %{branch} vers %{remote}"
+drop.label_pull:
+  en: "Get %{remote} into %{branch}"
+  fr: "Récupérer %{remote} dans %{branch}"
+drop.label_rewrite:
+  en: "Swap or squash these two commits"
+  fr: "Échanger ou fusionner ces deux commits"
+drop.drag_commit:
+  en: "Commit %{commit}: drop it on a commit or a branch"
+  fr: "Commit %{commit} : déposez-le sur un commit ou une branche"
+drop.drag_branch:
+  en: "%{branch}: drop it on a commit to move it"
+  fr: "%{branch} : déposez-la sur un commit pour la déplacer"
+drop.cherry_pick_intro:
+  en: "A copy of « %{subject} » is added on top of %{onto}. The original stays where it is."
+  fr: "Une copie de « %{subject} » est ajoutée au bout de %{onto}. L'original reste où il est."
+drop.cherry_pick_button:
+  en: "Copy"
+  fr: "Copier"
+drop.move_intro:
+  en: "%{branch} will point at « %{subject} ». Its old position is kept under refs/backup/%{branch}."
+  fr: "%{branch} pointera sur « %{subject} ». Son ancienne position est gardée sous refs/backup/%{branch}."
+drop.move_current_intro:
+  en: "You are on %{branch}: it will point at « %{subject} » and your files follow (git refuses if that would lose local changes). Its old position is kept under refs/backup/%{branch}."
+  fr: "Vous êtes sur %{branch} : elle pointera sur « %{subject} » et vos fichiers suivent (git refuse si cela perdait des modifications locales). Son ancienne position est gardée sous refs/backup/%{branch}."
+drop.move_button:
+  en: "Move"
+  fr: "Déplacer"
+drop.push_intro:
+  en: "Your commits of %{branch} go to %{remote}. If a colleague sent something meanwhile, git refuses: get it first."
+  fr: "Vos commits de %{branch} partent vers %{remote}. Si un collègue a envoyé quelque chose entre-temps, git refuse : récupérez d'abord."
+drop.push_button:
+  en: "Send"
+  fr: "Envoyer"
+drop.push_not_undoable:
+  en: "Once sent, it can't be undone with Ctrl+Z"
+  fr: "Une fois envoyé, Ctrl+Z ne peut plus l'annuler"
+drop.pushed:
+  en: "%{branch} sent."
+  fr: "%{branch} envoyée."
+drop.pull_intro:
+  en: "%{branch} moves forward to %{remote}. If both have different commits, git refuses: go onto %{branch} and use Get."
+  fr: "%{branch} avance jusqu'à %{remote}. Si les deux ont des commits différents, git refuse : allez sur %{branch} et utilisez Récupérer."
+drop.pull_button:
+  en: "Get"
+  fr: "Récupérer"
+drop.swap:
+  en: "Swap their order"
+  fr: "Échanger leur ordre"
+drop.squash:
+  en: "Squash into one commit"
+  fr: "Les fusionner en un seul commit"
+drop.swap_intro:
+  en: "« %{newer} » goes before « %{older} ». The commits get new ids; nothing else changes."
+  fr: "« %{newer} » passe avant « %{older} ». Les commits reçoivent de nouveaux identifiants ; rien d'autre ne change."
+drop.squash_intro:
+  en: "« %{newer} » is merged into « %{older} »: one commit with both changes and both messages."
+  fr: "« %{newer} » est fusionné dans « %{older} » : un seul commit avec les deux changements et les deux messages."
+drop.swap_button:
+  en: "Swap"
+  fr: "Échanger"
+drop.squash_button:
+  en: "Squash"
+  fr: "Fusionner"
+drop.rebase_after_note:
+  en: "Only the commits after %{commit} are moved; the ones before stay where they are."
+  fr: "Seuls les commits après %{commit} sont déplacés ; ceux d'avant restent où ils sont."

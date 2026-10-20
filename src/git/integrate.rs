@@ -29,7 +29,14 @@ pub enum Kind {
 
 /// The command that starts the integration of `other` into the current
 /// branch. A merge stops before committing so the result can be checked.
-pub fn start(root: &Path, kind: Kind, other: &str, ignore_whitespace: bool) -> GitCommand {
+/// A rebase given `after` only moves the commits after that one (`--onto`).
+pub fn start(
+    root: &Path,
+    kind: Kind,
+    other: &str,
+    after: Option<&str>,
+    ignore_whitespace: bool,
+) -> GitCommand {
     let mut args: Vec<&str> = CONFLICT_CONFIG.to_vec();
     match kind {
         Kind::Merge => args.extend(["merge", "--no-commit", "--no-ff"]),
@@ -39,7 +46,10 @@ pub fn start(root: &Path, kind: Kind, other: &str, ignore_whitespace: bool) -> G
     if ignore_whitespace {
         args.extend(["-X", "ignore-space-change"]);
     }
-    args.push(other);
+    match (kind, after) {
+        (Kind::Rebase, Some(after)) => args.extend(["--onto", other, after]),
+        _ => args.push(other),
+    }
     GitCommand::new(args).in_dir(root)
 }
 
@@ -301,7 +311,7 @@ mod tests {
         let tmp = repo().await;
         let root = tmp.path();
         let git_dir = root.join(".git");
-        let r = run(super::start(root, Kind::Merge, "feature/x", true)).await;
+        let r = run(super::start(root, Kind::Merge, "feature/x", None, true)).await;
         assert!(!r.success());
         assert_eq!(operation_in_progress(&git_dir), Some(Operation::Merge));
         let (sides, _) = sides(root, &git_dir, Operation::Merge, Some("main")).await;
@@ -321,7 +331,7 @@ mod tests {
         let root = tmp.path();
         let git_dir = root.join(".git");
         ok(root, &["switch", "-q", "feature/x"]).await;
-        let r = run(super::start(root, Kind::Rebase, "main", true)).await;
+        let r = run(super::start(root, Kind::Rebase, "main", None, true)).await;
         assert!(!r.success());
         assert_eq!(operation_in_progress(&git_dir), Some(Operation::Rebase));
         let (sides, _) = sides(root, &git_dir, Operation::Rebase, None).await;

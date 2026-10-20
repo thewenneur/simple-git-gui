@@ -6,6 +6,7 @@
 
 mod changes;
 mod config;
+mod dragdrop;
 mod history;
 mod integrate;
 mod sync;
@@ -22,7 +23,9 @@ use iced::widget::{
     Space, button, checkbox, column, container, mouse_area, opaque, row, scrollable, space, stack,
     text, text_editor, text_input, tooltip,
 };
-use iced::{Alignment, Color, Element, Length, Padding, Point, Size, Subscription, Task, Theme};
+use iced::{
+    Alignment, Color, Element, Length, Padding, Point, Size, Subscription, Task, Theme, mouse,
+};
 
 use crate::git::branches::{self, Stash, Target};
 use crate::git::diff::DiffOptions;
@@ -175,6 +178,10 @@ pub enum Action {
     DeleteBranch,
     /// Settling a conflict.
     Resolve,
+    /// Sending a branch that is not the current one.
+    Push,
+    /// Swapping, squashing or rewording commits not sent yet.
+    Rewrite,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -255,7 +262,13 @@ pub enum Message {
     WindowResized(Size),
     Escape,
     HistorySearch(String),
-    SelectCommit(String),
+    Grab(dragdrop::Grip),
+    Hover(dragdrop::Grip),
+    Unhover(dragdrop::Grip),
+    /// The pointer left a branch label of the history, still on its row.
+    LeaveBadge(String, String),
+    Release,
+    DialogSquash(bool),
     CommitDetails(PathBuf, Box<history::Details>, Vec<CommandRecord>),
     SelectCommitFile(String),
     CommitFileDiff(
@@ -662,6 +675,46 @@ impl App {
             }
             Message::Pointer(point) => {
                 self.pointer = point;
+                self.drag_moved(point);
+                Task::none()
+            }
+            Message::Grab(grip) => self.grab(grip),
+            Message::Hover(grip) => {
+                // Entering a row also enters the label under the pointer,
+                // which comes first: keep the label.
+                let hovered = self.repo.as_ref().and_then(|r| r.history.hover.as_ref());
+                let on_label = match (&grip, hovered) {
+                    (dragdrop::Grip::Commit(hash), Some(dragdrop::Grip::Branch(name))) => self
+                        .repo
+                        .as_ref()
+                        .and_then(|r| r.commits.iter().find(|c| c.hash == *hash))
+                        .is_some_and(|c| c.refs.contains(name)),
+                    _ => false,
+                };
+                if !on_label {
+                    self.hover(Some(grip));
+                }
+                Task::none()
+            }
+            Message::LeaveBadge(name, hash) => {
+                if self.repo.as_ref().and_then(|r| r.history.hover.as_ref())
+                    == Some(&dragdrop::Grip::Branch(name))
+                {
+                    self.hover(Some(dragdrop::Grip::Commit(hash)));
+                }
+                Task::none()
+            }
+            Message::Unhover(grip) => {
+                if self.repo.as_ref().and_then(|r| r.history.hover.as_ref()) == Some(&grip) {
+                    self.hover(None);
+                }
+                Task::none()
+            }
+            Message::Release => self.release(),
+            Message::DialogSquash(on) => {
+                if let Some(history::Dialog::Drop { squash, .. }) = &mut self.history_dialog {
+                    *squash = on;
+                }
                 Task::none()
             }
             Message::WindowResized(size) => {
@@ -670,6 +723,9 @@ impl App {
             }
             Message::Escape => {
                 self.context_menu = None;
+                if let Some(repo) = &mut self.repo {
+                    repo.history.drag = None;
+                }
                 self.history_dialog = None;
                 self.integration_prompt = None;
                 if let Some(repo) = &mut self.repo {
@@ -683,7 +739,6 @@ impl App {
                 }
                 Task::none()
             }
-            Message::SelectCommit(hash) => self.select_commit(hash),
             Message::CommitDetails(root, details, records) => {
                 self.details_loaded(root, *details, records)
             }
@@ -721,7 +776,7 @@ impl App {
                 Task::none()
             }
             Message::DialogEdit(action) => {
-                if let Some(history::Dialog::Reword { content }) = &mut self.history_dialog {
+                if let Some(history::Dialog::Reword { content, .. }) = &mut self.history_dialog {
                     content.perform(action);
                 }
                 Task::none()
@@ -826,6 +881,13 @@ impl App {
                 .first()
                 .is_some_and(|a| a == "rebase" || a == "merge")
         });
+        // `git push origin local:name`: the branch sent.
+        let pushed = records
+            .last()
+            .filter(|r| r.command.args.first().is_some_and(|a| a == "push"))
+            .and_then(|r| r.command.args.last())
+            .and_then(|a| a.split_once(':'))
+            .map(|(local, _)| local.to_string());
         for record in records {
             self.log(record);
         }
@@ -841,7 +903,9 @@ impl App {
                 self.delete_refused();
             }
             Some((Some(verb), _, _))
-                if (verb == "cherry-pick" || verb == "revert")
+                if (verb == "cherry-pick"
+                    || verb == "revert"
+                    || (verb == "rebase" && action == Action::Rewrite))
                     && repo::operation_in_progress(
                         &self
                             .repo
@@ -867,6 +931,14 @@ impl App {
                 Action::Commit => {
                     if let Some(repo) = &mut self.repo {
                         repo.commit_message = text_editor::Content::new();
+                    }
+                }
+                Action::Push => {
+                    let sent = pushed.unwrap_or_default();
+                    self.notice = Some(t!("drop.pushed", branch = sent).into_owned());
+                    if let Some(repo) = &mut self.repo {
+                        repo.undo
+                            .clear_after_push(t!("undo.send", branch = sent).into_owned());
                     }
                 }
                 Action::Fetch if fetched => {
@@ -1075,7 +1147,13 @@ impl App {
             .height(Length::Fill)
             .style(style::page),
         )
-        .on_move(Message::Pointer);
+        .on_move(Message::Pointer)
+        .on_release(Message::Release)
+        .interaction(if self.dragging().is_some() {
+            mouse::Interaction::Grabbing
+        } else {
+            mouse::Interaction::None
+        });
 
         let dialog = if let Some(wizard) = &self.send {
             Some(self.send_dialog(wizard, p))
@@ -1114,6 +1192,9 @@ impl App {
                 ),
             ]
             .into();
+        }
+        if let Some(overlay) = self.drag_overlay(p) {
+            return stack![page, overlay].into();
         }
         page.into()
     }
@@ -1302,8 +1383,12 @@ impl App {
                     .iter()
                     .filter(|s| s.auto_branch() == Some(branch.name.as_str()))
                     .count();
+                let grip = dragdrop::Grip::Branch(branch.name.clone());
                 nav = nav.push(
                     mouse_area(branch_row(branch, set_aside, p))
+                        .on_press(Message::Grab(grip.clone()))
+                        .on_enter(Message::Hover(grip.clone()))
+                        .on_exit(Message::Unhover(grip))
                         .on_double_click(Message::SwitchTo(Target::Branch(branch.name.clone())))
                         .on_right_press(Message::OpenMenu(history::MenuTarget::Branch(
                             branch.name.clone(),
@@ -1324,6 +1409,11 @@ impl App {
                             .width(Length::Fill)
                             .align_y(Alignment::Center),
                     )
+                    .on_press(Message::Grab(dragdrop::Grip::Branch(branch.name.clone())))
+                    .on_enter(Message::Hover(dragdrop::Grip::Branch(branch.name.clone())))
+                    .on_exit(Message::Unhover(dragdrop::Grip::Branch(
+                        branch.name.clone(),
+                    )))
                     .on_right_press(Message::OpenMenu(
                         history::MenuTarget::Branch(branch.name.clone()),
                     )),

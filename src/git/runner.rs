@@ -37,6 +37,8 @@ pub struct GitCommand {
     /// For a file edit the app does itself (not a git call): the equivalent
     /// shell command, shown in the journal instead.
     pub shell: Option<String>,
+    /// Environment variables set for this command only (shown in the journal).
+    pub env: Vec<(String, String)>,
 }
 
 impl GitCommand {
@@ -53,6 +55,7 @@ impl GitCommand {
             typed: false,
             input: None,
             shell: None,
+            env: Vec::new(),
         }
     }
 
@@ -68,6 +71,11 @@ impl GitCommand {
 
     pub fn with_input(mut self, input: impl Into<String>) -> Self {
         self.input = Some(input.into());
+        self
+    }
+
+    pub fn with_env(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.env.push((key.into(), value.into()));
         self
     }
 
@@ -123,9 +131,14 @@ impl GitCommand {
         if let Some(shell) = &self.shell {
             return shell.clone();
         }
-        std::iter::once("git")
-            .chain(self.args.iter().map(String::as_str))
-            .map(quote)
+        self.env
+            .iter()
+            .map(|(k, v)| format!("{k}={}", quote(v)))
+            .chain(
+                std::iter::once("git")
+                    .chain(self.args.iter().map(String::as_str))
+                    .map(quote),
+            )
             .collect::<Vec<_>>()
             .join(" ")
     }
@@ -243,6 +256,9 @@ pub async fn run(command: GitCommand) -> CommandRecord {
         .env("LC_ALL", "C")
         .env("LANGUAGE", "C")
         .kill_on_drop(true);
+    for (key, value) in &command.env {
+        cmd.env(key, value);
+    }
     if let Some(dir) = &command.cwd {
         cmd.current_dir(dir);
     }

@@ -33,6 +33,10 @@ pub struct HistoryState {
     pub compare: Option<String>,
     pub details: Option<Details>,
     pub search: String,
+    /// A commit or label pressed, and maybe being dragged.
+    pub drag: Option<super::dragdrop::Drag>,
+    /// What is under the pointer, where a drag would drop.
+    pub hover: Option<super::dragdrop::Grip>,
 }
 
 /// What a commit (or a comparison) changed.
@@ -92,7 +96,13 @@ pub enum Dialog {
         name: String,
     },
     Reword {
+        commit: String,
         content: text_editor::Content,
+    },
+    /// A drag and drop to confirm (`squash`: the choice for two neighbours).
+    Drop {
+        plan: super::dragdrop::DropPlan,
+        squash: bool,
     },
     /// `git branch -d` refused: the branch has commits found nowhere else.
     ForceDelete {
@@ -112,8 +122,13 @@ impl Clone for Dialog {
                 at: at.clone(),
                 name: name.clone(),
             },
-            Dialog::Reword { content } => Dialog::Reword {
+            Dialog::Reword { commit, content } => Dialog::Reword {
+                commit: commit.clone(),
                 content: text_editor::Content::with_text(&content.text()),
+            },
+            Dialog::Drop { plan, squash } => Dialog::Drop {
+                plan: plan.clone(),
+                squash: *squash,
             },
             Dialog::ForceDelete { branch } => Dialog::ForceDelete {
                 branch: branch.clone(),
@@ -385,6 +400,7 @@ impl App {
                     })
                     .unwrap_or_default();
                 self.history_dialog = Some(Dialog::Reword {
+                    commit: hash,
                     content: text_editor::Content::with_text(&message),
                 });
                 Task::none()
@@ -499,15 +515,26 @@ impl App {
                 undoable.refs = vec![format!("refs/tags/{name}")];
                 self.perform(Action::History, None, Some(undoable), vec![command])
             }
-            Dialog::Reword { content } => {
+            Dialog::Reword { commit, content } => {
                 let message = content.text().trim().to_string();
                 if message.is_empty() {
                     return Task::none();
+                }
+                let head = repo.status.as_ref().and_then(|s| s.branch.oid.as_deref());
+                if head != Some(commit.as_str()) {
+                    return self.rewrite(
+                        crate::git::rewrite::Edit::Reword {
+                            commit,
+                            message: format!("{message}\n"),
+                        },
+                        t!("undo.reword").into_owned(),
+                    );
                 }
                 let command = branches::reword_head(&root, &message);
                 let undoable = Undoable::new(t!("undo.reword").into_owned(), Moves::Commit);
                 self.perform(Action::History, None, Some(undoable), vec![command])
             }
+            Dialog::Drop { plan, squash } => self.run_plan(plan, squash),
             Dialog::ForceDelete { branch } => self.delete_branch(branch, true),
         }
     }
@@ -693,7 +720,15 @@ impl App {
         let row = container(line.padding(Padding::default().right(14)))
             .height(ROW_HEIGHT)
             .width(Length::Fill);
-        let row = if selected {
+        let grip = super::dragdrop::Grip::Commit(commit.hash.clone());
+        let drop_here = self.dragging().is_some()
+            && history.hover.as_ref().is_some_and(|h| match h {
+                super::dragdrop::Grip::Commit(hash) => *hash == commit.hash,
+                super::dragdrop::Grip::Branch(name) => commit.refs.contains(name),
+            });
+        let row = if drop_here {
+            row.style(style::drop_target)
+        } else if selected {
             row.style(style::selected_row)
         } else if detached_here {
             row.style(style::tinted(p.warning))
@@ -701,7 +736,9 @@ impl App {
             row
         };
         mouse_area(row)
-            .on_press(Message::SelectCommit(commit.hash.clone()))
+            .on_press(Message::Grab(grip.clone()))
+            .on_enter(Message::Hover(grip.clone()))
+            .on_exit(Message::Unhover(grip))
             .on_right_press(Message::OpenMenu(MenuTarget::Commit(commit.hash.clone())))
             .into()
     }
@@ -751,7 +788,13 @@ impl App {
         };
         tooltip(
             mouse_area(badge)
-                .on_press(Message::SelectCommit(commit.hash.clone()))
+                .on_press(Message::Grab(super::dragdrop::Grip::Branch(
+                    name.to_string(),
+                )))
+                .on_enter(Message::Hover(super::dragdrop::Grip::Branch(
+                    name.to_string(),
+                )))
+                .on_exit(Message::LeaveBadge(name.to_string(), commit.hash.clone()))
                 .on_double_click(Message::MenuAction(MenuAction::Switch(name.to_string())))
                 .on_right_press(Message::OpenMenu(MenuTarget::Branch(name.to_string()))),
             container(text(t!("history.badge_tip")).size(12))
@@ -1066,18 +1109,23 @@ impl App {
                     on(MenuAction::Revert(hash.clone())),
                     false,
                 );
-                let reword = if !is_head {
-                    t!("menu.reword_not_last").into_owned()
-                } else if pushed {
+                let rewordable = self.can_reword(hash);
+                let reword = if pushed {
                     t!("menu.reword_pushed").into_owned()
+                } else if !rewordable {
+                    t!("menu.reword_not_here").into_owned()
                 } else {
                     t!("menu.reword").into_owned()
                 };
                 items = add(
                     items,
                     reword,
-                    "commit --amend",
-                    on(MenuAction::Reword(hash.clone())).filter(|_| is_head && !pushed),
+                    if is_head {
+                        "commit --amend"
+                    } else {
+                        "rebase -i"
+                    },
+                    on(MenuAction::Reword(hash.clone())).filter(|_| rewordable && !pushed),
                     false,
                 );
                 items = separator(items);
@@ -1235,10 +1283,28 @@ impl App {
                         .into(),
                 )
             }
-            Dialog::Reword { content } => (
+            Dialog::Reword { commit, content } => (
                 t!("dialog.reword_title").into_owned(),
                 t!("dialog.reword_intro").into_owned(),
-                "git commit --amend --only -m <message>".to_string(),
+                if repo.status.as_ref().and_then(|s| s.branch.oid.as_deref())
+                    == Some(commit.as_str())
+                {
+                    "git commit --amend --only -m <message>".to_string()
+                } else {
+                    let edit = crate::git::rewrite::Edit::Reword {
+                        commit: commit.clone(),
+                        message: String::new(),
+                    };
+                    let base = self
+                        .rewrite_parts(&edit)
+                        .and_then(|(base, _)| base)
+                        .map(|b| short(&b));
+                    format!(
+                        "{}\n  reword {}",
+                        crate::git::rewrite::shown(&repo.paths.root, base.as_deref()),
+                        short(commit)
+                    )
+                },
                 t!("dialog.save").into_owned(),
                 text_editor(content)
                     .height(140)
@@ -1248,6 +1314,33 @@ impl App {
                     .style(style::editor)
                     .into(),
             ),
+            Dialog::Drop { plan, squash } => {
+                let (title, intro, confirm) = self.drop_texts(plan, *squash);
+                let body: Element<'a, Message> = match plan {
+                    super::dragdrop::DropPlan::Rewrite { .. } => row![
+                        button(centered(text(t!("drop.swap"))))
+                            .padding([0, 14])
+                            .height(36)
+                            .on_press(Message::DialogSquash(false))
+                            .style(style::choice(!*squash)),
+                        button(centered(text(t!("drop.squash"))))
+                            .padding([0, 14])
+                            .height(36)
+                            .on_press(Message::DialogSquash(true))
+                            .style(style::choice(*squash)),
+                    ]
+                    .spacing(8)
+                    .into(),
+                    _ => Space::new().into(),
+                };
+                (
+                    title,
+                    intro,
+                    self.plan_commands(plan, *squash).join("\n"),
+                    confirm,
+                    body,
+                )
+            }
             Dialog::ForceDelete { branch } => (
                 t!("dialog.force_delete_title", branch = branch).into_owned(),
                 t!("dialog.force_delete_intro", branch = branch).into_owned(),
@@ -1260,6 +1353,13 @@ impl App {
             ),
         };
         let destructive = matches!(dialog, Dialog::ForceDelete { .. });
+        let undo_note = match dialog {
+            Dialog::Drop {
+                plan: super::dragdrop::DropPlan::Push { .. },
+                ..
+            } => t!("drop.push_not_undoable"),
+            _ => t!("dialog.undoable"),
+        };
         container(
             column![
                 text(title).size(20).font(sans(Weight::Semibold)),
@@ -1276,7 +1376,7 @@ impl App {
                 .width(Length::Fill)
                 .style(style::journal_box),
                 row![
-                    text(t!("dialog.undoable")).size(12).color(p.muted),
+                    text(undo_note).size(12).color(p.muted),
                     space::horizontal(),
                     button(centered(text(t!("common.cancel"))))
                         .padding([0, 16])
@@ -1306,7 +1406,7 @@ impl App {
 }
 
 /// `origin/feature/x` → `feature/x`; local names are kept.
-fn local_name(repo: &OpenRepo, name: &str) -> String {
+pub(super) fn local_name(repo: &OpenRepo, name: &str) -> String {
     match repo.branches.iter().find(|b| b.remote && b.name == name) {
         Some(_) => name
             .split_once('/')
@@ -1318,7 +1418,7 @@ fn local_name(repo: &OpenRepo, name: &str) -> String {
 
 /// Whether a remote branch contains the commit, as far as the history shown
 /// tells: a remote branch points at it or at one of its descendants.
-fn is_on_remote(repo: &OpenRepo, hash: &str) -> bool {
+pub(super) fn is_on_remote(repo: &OpenRepo, hash: &str) -> bool {
     let remote_tips: Vec<&str> = repo
         .commits
         .iter()

@@ -420,6 +420,16 @@ pub fn selected_row(theme: &Theme) -> container::Style {
     }
 }
 
+/// A history row a drag would drop on.
+pub fn drop_target(theme: &Theme) -> container::Style {
+    let p = palette(theme);
+    container::Style {
+        background: Some(p.accent.soft.into()),
+        border: border(p.accent.strong, 2.0, 4.0),
+        ..container::Style::default()
+    }
+}
+
 pub fn accent_bar(theme: &Theme) -> container::Style {
     container::Style {
         background: Some(palette(theme).accent.strong.into()),

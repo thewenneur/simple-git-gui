@@ -50,6 +50,13 @@ cargo run --release -- ~/project    # opens this repository directly
   branch (`auto/<branch>` stash) and come back when you return to it.
 - A banner when you are on an old commit outside any branch (detached HEAD), with
   "create a branch here" and "go back".
+- **Drag and drop** in the history, always confirmed with the exact command: a commit of
+  your branch dropped on another commit or branch rebases from there; another commit
+  dropped on your branch merges it; Ctrl+drag copies it (cherry-pick); a branch label
+  dropped on a commit moves the branch (its old position is kept in `refs/backup/`);
+  a label dropped on its server counterpart sends or gets; two neighbouring commits not
+  sent yet are swapped or squashed. The message of an older commit not sent yet can be
+  edited too (the app writes the interactive rebase's to-do list itself).
 - **Merge and rebase assistant** that never says ours/theirs: each side carries its
   branch name, the right way round for a merge and for a rebase. Fewer false conflicts
   (`zdiff3`, `rerere`, histogram diff, whitespace ignored), and a merge is checked
@@ -77,13 +84,14 @@ The roadmap is in [docs/PLAN.md](docs/PLAN.md).
 - `src/git/graph.rs`: lanes of the branch graph; `src/git/branches.rs`: switching with
   per-branch set-aside, branches, tags, cherry-pick, revert and commit contents.
 - `src/git/integrate.rs`: merge and rebase with fewer false conflicts, and the branch
-  name of each side; `src/git/conflict.rs`: conflict parsing and duplicated blocks.
+  name of each side; `src/git/conflict.rs`: conflict parsing and duplicated blocks;
+  `src/git/rewrite.rs`: swap, squash and reword through a prepared interactive rebase.
 - `src/git/config.rs`: the settings of the Git configuration screen.
 - `src/app/mod.rs`: application state, messages and the main layout; `src/app/changes.rs`
   (changed files, diff, commit), `src/app/sync.rs` (get and send), `src/app/undo.rs`
   (Ctrl+Z / Ctrl+Y), `src/app/config.rs` (Git configuration screen), `src/app/history.rs`
   (graph, commit details, menus and dialogs), `src/app/integrate.rs` (merge and rebase
-  assistant).
+  assistant), `src/app/dragdrop.rs` (drag and drop gestures and their confirmation).
 - `src/ui/style.rs`: light and dark palettes, fonts and widget styles; `src/ui/icons.rs`: icons.
 - `assets/fonts/`: IBM Plex Sans and Mono (SIL OFL 1.1 license, see `OFL.txt`).
 - `locales/app.yml`: every UI text, in English and French side by side. A test checks that

@@ -9,6 +9,7 @@ pub mod ignore;
 pub mod integrate;
 pub mod ops;
 pub mod repo;
+pub mod rewrite;
 pub mod runner;
 pub mod status;
 pub mod undo;

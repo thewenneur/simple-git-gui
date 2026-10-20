@@ -16,8 +16,10 @@ use crate::git::undo::{self as git_undo, Entry, Moves, State};
 #[derive(Debug, Clone)]
 pub struct Prompt {
     pub kind: Kind,
-    /// The other branch.
+    /// The other branch (or a commit, for a rebase onto it).
     pub other: String,
+    /// For a rebase that moves only the commits after this one (`--onto`).
+    pub after: Option<String>,
     pub ignore_whitespace: bool,
 }
 
@@ -266,6 +268,7 @@ impl App {
         self.integration_prompt = Some(Prompt {
             kind,
             other,
+            after: None,
             ignore_whitespace: true,
         });
         Task::none()
@@ -287,7 +290,13 @@ impl App {
         }
         .into_owned();
         repo.after_check = None;
-        let command = integrate::start(&root, prompt.kind, &prompt.other, prompt.ignore_whitespace);
+        let command = integrate::start(
+            &root,
+            prompt.kind,
+            &prompt.other,
+            prompt.after.as_deref(),
+            prompt.ignore_whitespace,
+        );
         self.busy = Some(t!("busy.integrating").into_owned());
         self.notice = None;
         let kind = prompt.kind;
@@ -770,6 +779,7 @@ impl App {
             &repo.paths.root,
             prompt.kind,
             other,
+            prompt.after.as_deref(),
             prompt.ignore_whitespace,
         );
         let mut col = column![
@@ -777,6 +787,16 @@ impl App {
             text(intro).color(p.text_2),
         ]
         .spacing(14);
+        if let Some(after) = &prompt.after {
+            col = col.push(
+                text(t!(
+                    "drop.rebase_after_note",
+                    commit = after.chars().take(7).collect::<String>()
+                ))
+                .size(13)
+                .color(p.text_2),
+            );
+        }
         let published = repo
             .status
             .as_ref()
