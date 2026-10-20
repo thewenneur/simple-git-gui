@@ -10,13 +10,15 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           save-if: false
-      - run: cargo build --release && cp target/release/simple-git-gui /tmp/current
+      - run: system_profiler SPDisplaysDataType | grep -iE "resolution|retina|ui looks" || true
+      - run: |
+          cargo build --release && cp target/release/simple-git-gui /tmp/small
+          sed -i '' 's/window_size((1280.0, 800.0))/window_size((1900.0, 1000.0))/' src/main.rs
+          cargo build --release && cp target/release/simple-git-gui /tmp/large
       - name: Measure
         run: |
           git clone -q . /tmp/repo
@@ -25,16 +27,17 @@ jobs:
             "$2" /tmp/repo & pid=$!
             sleep 20
             echo "=== $label after 20s"
-            footprint $pid | head -40 || true
-            vmmap --summary $pid | sed -n '/REGION TYPE/,/TOTAL/p' || true
+            footprint $pid | head -14 || true
+            sleep 40
+            echo "=== $label after 60s"
+            footprint $pid | head -6 || true
             screencapture -x "/tmp/$label.png" || true
-            sleep 60
-            echo "=== $label after 80s"
-            footprint $pid | head -8 || true
             kill $pid; sleep 2
           }
-          measure current /tmp/current
-          SIMPLE_GIT_GPU=1 measure gpu /tmp/current
+          measure small /tmp/small
+          measure large /tmp/large
+          SIMPLE_GIT_GPU=1 measure small-gpu /tmp/small
+          SIMPLE_GIT_GPU=1 measure large-gpu /tmp/large
       - uses: actions/upload-artifact@v4
         if: always()
         with:
