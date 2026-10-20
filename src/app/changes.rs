@@ -4,10 +4,12 @@
 use iced::widget::text::{LineHeight, Wrapping};
 use iced::widget::{column, mouse_area, row, text_editor};
 
+use super::undo::Undoable;
 use super::*;
 use crate::git::diff::{self, DiffOptions, FileDiff, Hunk, Line, LineKind};
 use crate::git::ignore::{self, IgnoreRule, IgnoreTarget};
 use crate::git::ops;
+use crate::git::undo::{FileChange, Moves};
 
 /// Width of the file list card.
 const LIST_WIDTH: f32 = 380.0;
@@ -227,6 +229,11 @@ impl App {
             return Task::none();
         };
         let root = &repo.paths.root;
+        let label = if stage {
+            t!("undo.stage", path = path).into_owned()
+        } else {
+            t!("undo.unstage", path = path).into_owned()
+        };
         let paths = [path];
         let command = if stage {
             ops::stage(root, &paths)
@@ -234,7 +241,12 @@ impl App {
             let has_head = repo.status.as_ref().is_some_and(|s| s.branch.oid.is_some());
             ops::unstage(root, &paths, has_head)
         };
-        self.perform(Action::Stage, None, vec![command])
+        self.perform(
+            Action::Stage,
+            None,
+            Some(index_change(label)),
+            vec![command],
+        )
     }
 
     pub(super) fn stage_all(&mut self) -> Task<Message> {
@@ -242,7 +254,13 @@ impl App {
             return Task::none();
         };
         let command = ops::stage_all(&repo.paths.root);
-        self.perform(Action::Stage, None, vec![command])
+        let label = t!("undo.stage_all").into_owned();
+        self.perform(
+            Action::Stage,
+            None,
+            Some(index_change(label)),
+            vec![command],
+        )
     }
 
     pub(super) fn apply_hunk(&mut self, index: usize) -> Task<Message> {
@@ -255,8 +273,19 @@ impl App {
         let Some(patch) = view.diff.hunk_patch(index) else {
             return Task::none();
         };
+        let path = &view.selection.path;
+        let label = if view.selection.staged {
+            t!("undo.unstage_hunk", path = path).into_owned()
+        } else {
+            t!("undo.stage_hunk", path = path).into_owned()
+        };
         let command = ops::apply_to_index(&repo.paths.root, patch, view.selection.staged);
-        self.perform(Action::Stage, None, vec![command])
+        self.perform(
+            Action::Stage,
+            None,
+            Some(index_change(label)),
+            vec![command],
+        )
     }
 
     pub(super) fn commit(&mut self) -> Task<Message> {
@@ -268,9 +297,15 @@ impl App {
             return Task::none();
         }
         let command = ops::commit(&repo.paths.root, &message);
+        let summary = message.lines().next().unwrap_or_default();
+        let undoable = Undoable::new(
+            t!("undo.commit", message = clip_chars(summary, 48)).into_owned(),
+            Moves::Commit,
+        );
         self.perform(
             Action::Commit,
             Some(t!("busy.committing").into_owned()),
+            Some(undoable),
             vec![command],
         )
     }
@@ -308,9 +343,11 @@ impl App {
             crate::git::runner::quote(&pattern),
             target.display()
         );
+        let before = std::fs::read_to_string(&file).ok();
         let result = ignore::append(&file, &pattern)
             .map(|_| ())
             .map_err(|e| e.to_string());
+        let after = std::fs::read_to_string(&file).ok();
         let ok = result.is_ok();
         let record = CommandRecord::local(shell, &root, result);
         if !ok {
@@ -321,12 +358,25 @@ impl App {
             IgnoreRule::Folder(ref dir) => dir.clone(),
             _ => menu.path.clone(),
         };
-        if ok && menu.tracked && menu.untrack {
-            let command = ops::untrack(&root, &untrack);
-            self.perform(Action::Ignore, None, vec![command])
-        } else {
-            self.refresh(false)
+        if !ok {
+            return self.refresh(false);
         }
+        let commands = if menu.tracked && menu.untrack {
+            vec![ops::untrack(&root, &untrack)]
+        } else {
+            Vec::new()
+        };
+        let undoable = Undoable {
+            label: t!("undo.ignore", pattern = pattern).into_owned(),
+            moves: Moves::Index,
+            file: Some(FileChange {
+                path: file,
+                before,
+                after,
+            }),
+            config: None,
+        };
+        self.perform(Action::Ignore, None, Some(undoable), commands)
     }
 
     // -------------------------------------------------------------- views
@@ -664,6 +714,13 @@ impl App {
                 text_editor(&repo.commit_message)
                     .placeholder(t!("commit.placeholder"))
                     .on_action(Message::CommitEdit)
+                    .key_binding(|press| {
+                        if super::undo::is_undo_key(&press.key, press.modifiers) {
+                            None
+                        } else {
+                            text_editor::Binding::from_key_press(press)
+                        }
+                    })
                     .height(76)
                     .size(13)
                     .padding([8, 10])
@@ -916,6 +973,21 @@ impl App {
             .width(Length::Fill)
             .style(style::hunk_header)
             .into()
+    }
+}
+
+fn index_change(label: String) -> Undoable {
+    Undoable::new(label, Moves::Index)
+}
+
+/// Shortens `s` to `max` characters, with an ellipsis.
+fn clip_chars(s: &str, max: usize) -> String {
+    if s.chars().count() <= max {
+        s.to_string()
+    } else {
+        let mut out: String = s.chars().take(max - 1).collect();
+        out.push('…');
+        out
     }
 }
 

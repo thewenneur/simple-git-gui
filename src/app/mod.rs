@@ -5,7 +5,9 @@
 //! the bottom.
 
 mod changes;
+mod config;
 mod sync;
+mod undo;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -65,6 +67,9 @@ pub struct App {
     side_by_side: bool,
     ignore_target: IgnoreTarget,
     send: Option<sync::SendWizard>,
+    config_scope: crate::git::config::Scope,
+    /// Text settings being typed, applied on Enter.
+    config_drafts: HashMap<&'static str, String>,
 }
 
 struct OpenRepo {
@@ -82,6 +87,8 @@ struct OpenRepo {
     diff: Option<changes::DiffView>,
     commit_message: text_editor::Content,
     ignore_menu: Option<changes::IgnoreMenu>,
+    undo: undo::UndoStacks,
+    config: Option<crate::git::config::Values>,
     /// A background refresh is running; avoids piling them up.
     refreshing: bool,
     /// Increased at each refresh; older results are dropped.
@@ -104,6 +111,8 @@ impl OpenRepo {
             diff: None,
             commit_message: text_editor::Content::new(),
             ignore_menu: None,
+            undo: undo::UndoStacks::default(),
+            config: None,
             refreshing: false,
             generation: 0,
         }
@@ -129,12 +138,14 @@ pub enum Action {
     Ignore,
     Abort,
     Fetch,
+    Config,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Section {
     Changes,
     History,
+    Config,
 }
 
 #[derive(Debug, Clone)]
@@ -173,7 +184,18 @@ pub enum Message {
     SetSideBySide(bool),
     CommitEdit(text_editor::Action),
     Commit,
-    ActionDone(Action, Vec<CommandRecord>),
+    ActionDone(
+        Action,
+        Vec<CommandRecord>,
+        Option<Box<crate::git::undo::Entry>>,
+    ),
+    Undo,
+    Redo,
+    UndoDone(
+        bool,
+        Result<(), crate::git::undo::Refusal>,
+        Vec<CommandRecord>,
+    ),
     OpenIgnoreMenu(String),
     CloseIgnoreMenu,
     SetIgnoreTarget(IgnoreTarget),
@@ -187,6 +209,11 @@ pub enum Message {
     ConfirmSend,
     SendDone(Vec<CommandRecord>),
     CloseSend,
+    ConfigLoaded(PathBuf, CommandRecord),
+    SetConfigScope(crate::git::config::Scope),
+    ConfigDraft(&'static str, String),
+    ApplyConfig(&'static str),
+    SetConfig(&'static str, Option<String>),
 }
 
 impl App {
@@ -231,6 +258,7 @@ impl App {
         Subscription::batch([
             refresh,
             iced::system::theme_changes().map(Message::SystemTheme),
+            iced::event::listen_with(undo::shortcut),
         ])
     }
 
@@ -322,7 +350,11 @@ impl App {
                 if let Some(repo) = &mut self.repo {
                     repo.section = section;
                 }
-                Task::none()
+                if section == Section::Config {
+                    self.load_config()
+                } else {
+                    Task::none()
+                }
             }
             Message::CloneUrlChanged(url) => {
                 self.clone_url = url;
@@ -462,7 +494,12 @@ impl App {
                 Task::none()
             }
             Message::Commit => self.commit(),
-            Message::ActionDone(action, records) => self.action_done(action, records),
+            Message::ActionDone(action, records, entry) => {
+                self.action_done(action, records, entry.map(|e| *e))
+            }
+            Message::Undo => self.undo_or_redo(true),
+            Message::Redo => self.undo_or_redo(false),
+            Message::UndoDone(undoing, result, records) => self.undo_done(undoing, result, records),
             Message::OpenIgnoreMenu(path) => self.open_ignore_menu(path),
             Message::CloseIgnoreMenu => {
                 if let Some(repo) = &mut self.repo {
@@ -492,6 +529,7 @@ impl App {
                 self.perform(
                     Action::Abort,
                     Some(t!("busy.aborting").into_owned()),
+                    None,
                     vec![command],
                 )
             }
@@ -506,6 +544,18 @@ impl App {
             }
             Message::ConfirmSend => self.confirm_send(),
             Message::SendDone(records) => self.send_done(records),
+            Message::ConfigLoaded(root, record) => self.config_loaded(root, record),
+            Message::SetConfigScope(scope) => {
+                self.config_scope = scope;
+                self.config_drafts.clear();
+                Task::none()
+            }
+            Message::ConfigDraft(key, value) => {
+                self.config_drafts.insert(key, value);
+                Task::none()
+            }
+            Message::ApplyConfig(key) => self.apply_config_draft(key),
+            Message::SetConfig(key, value) => self.set_config(key, value),
             Message::CloseSend => {
                 self.send = None;
                 self.busy = None;
@@ -520,17 +570,23 @@ impl App {
         &mut self,
         action: Action,
         label: Option<String>,
+        undoable: Option<undo::Undoable>,
         commands: Vec<GitCommand>,
     ) -> Task<Message> {
-        self.busy = Some(label.unwrap_or_default());
-        self.notice = None;
-        Task::perform(run_all(commands), move |records| {
-            Message::ActionDone(action, records)
-        })
+        self.perform_with(action, label, undoable, run_all(commands))
     }
 
-    fn action_done(&mut self, action: Action, records: Vec<CommandRecord>) -> Task<Message> {
+    fn action_done(
+        &mut self,
+        action: Action,
+        records: Vec<CommandRecord>,
+        entry: Option<crate::git::undo::Entry>,
+    ) -> Task<Message> {
         self.busy = None;
+        let succeeded = records.last().is_none_or(CommandRecord::success);
+        if let Some(entry) = entry.filter(|_| succeeded) {
+            self.record_undo(entry);
+        }
         let failed = records.last().filter(|r| !r.success()).map(|r| {
             (
                 r.command.args.first().cloned(),
@@ -579,7 +635,16 @@ impl App {
                 _ => {}
             },
         }
-        self.refresh(false)
+        let refresh = self.refresh(false);
+        if self
+            .repo
+            .as_ref()
+            .is_some_and(|r| r.section == Section::Config)
+        {
+            Task::batch([refresh, self.load_config()])
+        } else {
+            refresh
+        }
     }
 
     fn log(&mut self, record: CommandRecord) {
@@ -811,6 +876,9 @@ impl App {
 
         bar = bar.push(space::horizontal());
 
+        if let Some(repo) = &self.repo {
+            bar = bar.push(self.undo_buttons(repo, p));
+        }
         if let Some(status) = self.repo.as_ref().and_then(|r| r.status.as_ref()) {
             let mut fetch = row![icon(Icon::Fetch, 16.0, p.text), text(t!("toolbar.fetch"))]
                 .spacing(8)
@@ -912,6 +980,14 @@ impl App {
                 t!("nav.history").into_owned(),
                 None,
                 Section::History,
+                repo.section,
+                p,
+            ),
+            nav_item(
+                Icon::Settings,
+                t!("nav.config").into_owned(),
+                None,
+                Section::Config,
                 repo.section,
                 p,
             ),
@@ -1065,6 +1141,7 @@ impl App {
                 None => text(t!("repo.reading_status")).color(p.muted).into(),
             },
             Section::History => self.history_view(&repo.commits, p),
+            Section::Config => self.config_view(repo, p),
         };
         view.push(section).into()
     }

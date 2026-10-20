@@ -5,7 +5,8 @@
 //! view code works in both.
 
 use iced::font::Weight;
-use iced::widget::{button, checkbox, container, scrollable, text_editor, text_input};
+use iced::overlay::menu;
+use iced::widget::{button, checkbox, container, pick_list, scrollable, text_editor, text_input};
 use iced::{Background, Border, Color, Font, Shadow, Theme, color};
 
 pub const SANS: Font = Font::with_name("IBM Plex Sans");
@@ -343,6 +344,15 @@ pub fn journal(theme: &Theme) -> container::Style {
     }
 }
 
+/// A dark box like the journal, for a command line.
+pub fn journal_box(theme: &Theme) -> container::Style {
+    let p = palette(theme);
+    container::Style {
+        text_color: Some(journal::TEXT),
+        ..boxed(p.journal_bg, p.journal_bg, RADIUS)
+    }
+}
+
 pub fn journal_separator(theme: &Theme) -> container::Style {
     container::Style {
         background: Some(palette(theme).journal_border.into()),
@@ -630,6 +640,22 @@ pub fn choice(selected: bool) -> impl Fn(&Theme, button::Status) -> button::Styl
     }
 }
 
+/// A segment that is filled with the accent color when selected (scope).
+pub fn accent_segment(selected: bool) -> impl Fn(&Theme, button::Status) -> button::Style {
+    move |theme, status| {
+        let p = palette(theme);
+        let mut style = if selected {
+            button_base(Some(p.accent.strong), Color::WHITE, Color::TRANSPARENT, 0.0)
+        } else if matches!(status, button::Status::Hovered) {
+            button_base(Some(p.page), p.text, Color::TRANSPARENT, 0.0)
+        } else {
+            button_base(Some(p.surface), p.text_2, Color::TRANSPARENT, 0.0)
+        };
+        style.border.radius = 0.0.into();
+        style
+    }
+}
+
 /// A light selection segment (Unified / Side by side), as in the wireframes.
 pub fn soft_segment(selected: bool) -> impl Fn(&Theme, button::Status) -> button::Style {
     move |theme, status| {
@@ -689,6 +715,34 @@ pub fn input(theme: &Theme, status: text_input::Status) -> text_input::Style {
         placeholder: p.muted,
         value: p.text,
         selection: p.accent.soft,
+    }
+}
+
+pub fn pick(theme: &Theme, status: pick_list::Status) -> pick_list::Style {
+    let p = palette(theme);
+    let border_color = match status {
+        pick_list::Status::Opened { .. } => p.accent.strong,
+        pick_list::Status::Hovered => p.text_2,
+        pick_list::Status::Active => p.input_border,
+    };
+    pick_list::Style {
+        text_color: p.text,
+        placeholder_color: p.muted,
+        handle_color: p.text_2,
+        background: p.surface.into(),
+        border: border(border_color, 1.0, RADIUS),
+    }
+}
+
+pub fn menu(theme: &Theme) -> menu::Style {
+    let p = palette(theme);
+    menu::Style {
+        background: p.surface.into(),
+        border: border(p.border, 1.0, RADIUS),
+        text_color: p.text,
+        selected_text_color: p.accent.text,
+        selected_background: p.accent.soft.into(),
+        shadow: Shadow::default(),
     }
 }
 

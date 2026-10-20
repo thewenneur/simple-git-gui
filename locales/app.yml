@@ -19,10 +19,10 @@ error.folder_exists:
   fr: "Le dossier %{path} existe déjà. Choisissez un autre emplacement."
 error.clone_failed:
   en: "The copy failed: %{detail}"
-  fr: "La copie a échoué : %{detail}"
+  fr: "La copie a échoué : %{detail}"
 error.console_malformed:
   en: "Malformed command: %{detail}"
-  fr: "Commande mal formée : %{detail}"
+  fr: "Commande mal formée : %{detail}"
 
 busy.cloning:
   en: "Copying %{url}…"
@@ -91,7 +91,7 @@ repo.bad_rev_parse:
 
 changes.none:
   en: "No changes: everything is saved."
-  fr: "Aucune modification : tout est enregistré."
+  fr: "Aucune modification : tout est enregistré."
 changes.conflicts:
   en: "In conflict"
   fr: "En conflit"
@@ -139,7 +139,7 @@ journal.more_lines:
 
 branch.current:
   en: "Branch: %{name}"
-  fr: "Branche : %{name}"
+  fr: "Branche : %{name}"
 branch.detached:
   en: "No active branch (detached HEAD on commit %{oid})"
   fr: "Aucune branche active (HEAD détaché sur le commit %{oid})"
@@ -190,7 +190,7 @@ runner.timed_out:
   fr: "git n'a pas répondu en %{secs} s et a été arrêté"
 runner.spawn_failed:
   en: "could not start git: %{detail}"
-  fr: "impossible de lancer git : %{detail}"
+  fr: "impossible de lancer git : %{detail}"
 
 status.untracked:
   en: "New file (not tracked yet)"
@@ -200,19 +200,19 @@ status.ignored:
   fr: "Ignoré"
 status.conflict_both_deleted:
   en: "Conflict: deleted on both sides"
-  fr: "Conflit : supprimé des deux côtés"
+  fr: "Conflit : supprimé des deux côtés"
 status.conflict_added_one_side:
   en: "Conflict: added on one side only"
-  fr: "Conflit : ajouté d'un seul côté"
+  fr: "Conflit : ajouté d'un seul côté"
 status.conflict_modified_deleted:
   en: "Conflict: modified on one side, deleted on the other"
-  fr: "Conflit : modifié d'un côté, supprimé de l'autre"
+  fr: "Conflit : modifié d'un côté, supprimé de l'autre"
 status.conflict_both_added:
   en: "Conflict: added on both sides"
-  fr: "Conflit : ajouté des deux côtés"
+  fr: "Conflit : ajouté des deux côtés"
 status.conflict_both_modified:
   en: "Conflict: modified on both sides"
-  fr: "Conflit : modifié des deux côtés"
+  fr: "Conflit : modifié des deux côtés"
 status.added:
   en: "New file"
   fr: "Nouveau fichier"
@@ -326,13 +326,13 @@ error.identity:
   fr: "Git ne sait pas encore qui vous êtes. Renseignez d'abord votre nom et votre e-mail (git config user.name / user.email), puis enregistrez à nouveau."
 error.fetch_failed:
   en: "Could not reach the server: %{detail}"
-  fr: "Impossible de joindre le serveur : %{detail}"
+  fr: "Impossible de joindre le serveur : %{detail}"
 error.push_failed:
   en: "The server refused the send: %{detail}"
-  fr: "Le serveur a refusé l'envoi : %{detail}"
+  fr: "Le serveur a refusé l'envoi : %{detail}"
 error.integrate_conflict:
   en: "Your work and the server's touch the same lines: the integration stopped and nothing was sent. You can put everything back as before with the button in the yellow banner. (%{detail})"
-  fr: "Votre travail et celui du serveur touchent les mêmes lignes : l'intégration s'est arrêtée et rien n'a été envoyé. Vous pouvez tout remettre comme avant avec le bouton du bandeau jaune. (%{detail})"
+  fr: "Votre travail et celui du serveur touchent les mêmes lignes : l'intégration s'est arrêtée et rien n'a été envoyé. Vous pouvez tout remettre comme avant avec le bouton du bandeau jaune. (%{detail})"
 
 op.abort:
   en: "Stop everything and go back to before"
@@ -354,7 +354,7 @@ commit.title:
   fr: "Décrire ce changement"
 commit.placeholder:
   en: "What did you change, and why?"
-  fr: "Qu'avez-vous changé, et pourquoi ?"
+  fr: "Qu'avez-vous changé, et pourquoi ?"
 commit.button_none:
   en: "Save (include files first)"
   fr: "Enregistrer (incluez d'abord des fichiers)"
@@ -412,10 +412,10 @@ diff.old_place:
   fr: "Lignes %{from} à %{to} (ancienne place du bloc déplacé)"
 diff.moved_from:
   en: "Moved from line %{line}: identical content, this is not an addition."
-  fr: "Déplacé depuis la ligne %{line} : contenu identique, ce n'est pas un ajout."
+  fr: "Déplacé depuis la ligne %{line} : contenu identique, ce n'est pas un ajout."
 diff.moved_to:
   en: "Moved to line %{line}: identical content, this is not a removal."
-  fr: "Déplacé vers la ligne %{line} : contenu identique, ce n'est pas une suppression."
+  fr: "Déplacé vers la ligne %{line} : contenu identique, ce n'est pas une suppression."
 diff.stage_hunk:
   en: "Include this block"
   fr: "Inclure ce bloc"
@@ -424,31 +424,31 @@ diff.unstage_hunk:
   fr: "Retirer ce bloc"
 diff.hunk_needs_exact:
   en: "Some whitespace changes are hidden here. Untick \"Ignore whitespace\" to include or remove a single block."
-  fr: "Des changements d'espaces sont masqués ici. Décochez « Ignorer les espaces » pour inclure ou retirer un bloc seul."
+  fr: "Des changements d'espaces sont masqués ici. Décochez « Ignorer les espaces » pour inclure ou retirer un bloc seul."
 diff.truncated:
   en: "%{count} more lines not shown."
   fr: "%{count} lignes de plus non affichées."
 diff.binary:
   en: "Binary file: its content can't be shown as text."
-  fr: "Fichier binaire : son contenu ne peut pas être affiché comme du texte."
+  fr: "Fichier binaire : son contenu ne peut pas être affiché comme du texte."
 diff.empty:
   en: "No difference to show."
   fr: "Aucune différence à afficher."
 diff.whitespace_only:
   en: "Only whitespace changed in this file. Untick \"Ignore whitespace\" to see it."
-  fr: "Seuls des espaces ont changé dans ce fichier. Décochez « Ignorer les espaces » pour les voir."
+  fr: "Seuls des espaces ont changé dans ce fichier. Décochez « Ignorer les espaces » pour les voir."
 diff.too_large:
   en: "This file is too large to be shown."
   fr: "Ce fichier est trop gros pour être affiché."
 diff.conflict:
   en: "This file is in conflict. The conflict wizard comes in a next version; meanwhile you can go back to before with the button in the banner."
-  fr: "Ce fichier est en conflit. L'assistant de conflit arrive dans une prochaine version ; en attendant, vous pouvez revenir comme avant avec le bouton du bandeau."
+  fr: "Ce fichier est en conflit. L'assistant de conflit arrive dans une prochaine version ; en attendant, vous pouvez revenir comme avant avec le bouton du bandeau."
 diff.not_a_file:
   en: "This is not a regular file."
   fr: "Ce n'est pas un fichier ordinaire."
 diff.untracked_footer:
   en: "new file: its whole content is shown"
-  fr: "nouveau fichier : tout son contenu est affiché"
+  fr: "nouveau fichier : tout son contenu est affiché"
 
 ignore.dialog_title:
   en: "Ignore %{path}"
@@ -473,7 +473,7 @@ ignore.folder:
   fr: "Ignorer le dossier %{dir}/"
 ignore.untrack:
   en: "Also stop tracking it (git rm --cached): it stays on disk, and its removal from the repository goes into the next save"
-  fr: "Arrêter aussi de le suivre (git rm --cached) : il reste sur le disque, et son retrait du dépôt ira dans le prochain enregistrement"
+  fr: "Arrêter aussi de le suivre (git rm --cached) : il reste sur le disque, et son retrait du dépôt ira dans le prochain enregistrement"
 
 send.title:
   en: "Send %{branch}"
@@ -501,13 +501,13 @@ send.no_incoming:
   fr: "Personne n'a rien envoyé entre-temps."
 send.incoming_one:
   en: "%{authors} sent 1 commit on %{branch}: %{subjects}."
-  fr: "%{authors} a envoyé 1 commit sur %{branch} : %{subjects}."
+  fr: "%{authors} a envoyé 1 commit sur %{branch} : %{subjects}."
 send.incoming_many:
   en: "%{authors} sent %{count} commits on %{branch}: %{subjects}."
-  fr: "%{authors} ont envoyé %{count} commits sur %{branch} : %{subjects}."
+  fr: "%{authors} ont envoyé %{count} commits sur %{branch} : %{subjects}."
 send.quoted:
   en: "“%{subject}”"
-  fr: "« %{subject} »"
+  fr: "« %{subject} »"
 send.step_integrate:
   en: "Integrate their work into yours"
   fr: "Intégrer son travail au vôtre"
@@ -525,10 +525,10 @@ send.rebase_hint:
   fr: "Historique en ligne droite."
 send.setting:
   en: "Repository setting: pull.rebase = %{value}."
-  fr: "Réglage du dépôt : pull.rebase = %{value}."
+  fr: "Réglage du dépôt : pull.rebase = %{value}."
 send.setting_unset:
   en: "pull.rebase is not set: Simple Git recommends this choice."
-  fr: "pull.rebase n'est pas réglé : Simple Git recommande ce choix."
+  fr: "pull.rebase n'est pas réglé : Simple Git recommande ce choix."
 send.merge:
   en: "Merge both"
   fr: "Fusionner les deux"
@@ -555,4 +555,224 @@ send.retry:
   fr: "Réessayer"
 send.done:
   en: "Sent to %{remote}: %{branch} is up to date on the server."
-  fr: "Envoyé sur %{remote} : %{branch} est à jour sur le serveur."
+  fr: "Envoyé sur %{remote} : %{branch} est à jour sur le serveur."
+
+busy.undoing:
+  en: "Undoing: %{action}…"
+  fr: "Annulation : %{action}…"
+busy.redoing:
+  en: "Redoing: %{action}…"
+  fr: "Rétablissement : %{action}…"
+error.undo_changed:
+  en: "The repository changed since this action (outside the app?). Undoing it now could lose work, so the undo history was cleared."
+  fr: "Le dépôt a changé depuis cette action (en dehors de l'application ?). L'annuler maintenant risquerait de perdre du travail : l'historique d'annulation a été vidé."
+error.undo_failed:
+  en: "Could not undo: %{detail}"
+  fr: "Annulation impossible : %{detail}"
+
+undo.tooltip:
+  en: "Undo: %{action} (Ctrl+Z)"
+  fr: "Annuler : %{action} (Ctrl+Z)"
+undo.redo_tooltip:
+  en: "Redo: %{action} (Ctrl+Y)"
+  fr: "Rétablir : %{action} (Ctrl+Y)"
+undo.nothing:
+  en: "Nothing to undo"
+  fr: "Rien à annuler"
+undo.nothing_to_redo:
+  en: "Nothing to redo"
+  fr: "Rien à rétablir"
+undo.after_push:
+  en: "%{action} is on the server: it can't be undone here. To take it back, use a reverse commit (revert), or a forced send you confirm."
+  fr: "%{action} est sur le serveur : impossible de l'annuler ici. Pour revenir en arrière, utilisez un commit inverse (revert) ou un envoi forcé que vous confirmez."
+undo.done:
+  en: "Undone: %{action}. Ctrl+Y to redo it."
+  fr: "Annulé : %{action}. Ctrl+Y pour le rétablir."
+undo.redone:
+  en: "Redone: %{action}."
+  fr: "Rétabli : %{action}."
+undo.stage:
+  en: "Include %{path}"
+  fr: "Inclure %{path}"
+undo.unstage:
+  en: "Take %{path} out of the save"
+  fr: "Retirer %{path} de l'enregistrement"
+undo.stage_all:
+  en: "Include all"
+  fr: "Tout inclure"
+undo.stage_hunk:
+  en: "Include a block of %{path}"
+  fr: "Inclure un bloc de %{path}"
+undo.unstage_hunk:
+  en: "Take a block of %{path} out"
+  fr: "Retirer un bloc de %{path}"
+undo.commit:
+  en: "Save “%{message}”"
+  fr: "Enregistrer « %{message} »"
+undo.ignore:
+  en: "Ignore %{pattern}"
+  fr: "Ignorer %{pattern}"
+undo.fetch:
+  en: "Get and integrate the server's work"
+  fr: "Récupérer et intégrer le travail du serveur"
+undo.send:
+  en: "Sending %{branch}"
+  fr: "L'envoi de %{branch}"
+
+nav.config:
+  en: "Git configuration"
+  fr: "Configuration Git"
+undo.config:
+  en: "Set %{key} = %{value}"
+  fr: "Régler %{key} = %{value}"
+undo.config_unset:
+  en: "Remove %{key}"
+  fr: "Retirer %{key}"
+
+config.loading:
+  en: "Reading the settings…"
+  fr: "Lecture des réglages…"
+config.title:
+  en: "Git configuration"
+  fr: "Configuration Git"
+config.intro:
+  en: "Every setting is explained and shows its git key. A repository setting wins over the global one."
+  fr: "Chaque réglage est expliqué et montre sa clé git. Un réglage du dépôt l'emporte sur le réglage global."
+config.scope_local:
+  en: "This repository"
+  fr: "Ce dépôt"
+config.scope_global:
+  en: "All my repositories (global)"
+  fr: "Tous mes dépôts (global)"
+config.section_identity:
+  en: "Identity"
+  fr: "Identité"
+config.section_sync:
+  en: "Get and send"
+  fr: "Récupérer et envoyer"
+config.section_conflicts:
+  en: "Conflicts and diffs"
+  fr: "Conflits et diffs"
+config.section_files:
+  en: "Files and line endings"
+  fr: "Fichiers et fins de ligne"
+config.name:
+  en: "Your name"
+  fr: "Votre nom"
+config.name_hint:
+  en: "Shown on every commit you save."
+  fr: "Affiché sur chaque commit que vous enregistrez."
+config.name_placeholder:
+  en: "First and last name"
+  fr: "Prénom et nom"
+config.email:
+  en: "Your email"
+  fr: "Votre e-mail"
+config.email_hint:
+  en: "Must match your account on the server to be recognized."
+  fr: "Doit correspondre à votre compte sur le serveur pour être reconnu."
+config.email_placeholder:
+  en: "name@example.com"
+  fr: "nom@exemple.fr"
+config.pull:
+  en: "When the server has something new"
+  fr: "Quand le serveur a du nouveau"
+config.pull_hint:
+  en: "\"Put my commits after\" keeps a straight history. \"Merge\" adds a merge commit."
+  fr: "« Placer mes commits après » garde un historique droit. « Fusionner » ajoute un commit de fusion."
+config.pull_rebase:
+  en: "Put my commits after (rebase)"
+  fr: "Placer mes commits après (rebase)"
+config.pull_merge:
+  en: "Merge"
+  fr: "Fusionner (merge)"
+config.rerere:
+  en: "Remember my resolutions"
+  fr: "Se souvenir de mes résolutions"
+config.rerere_hint:
+  en: "If the same conflict comes back (after a rebase for example), it is resolved like last time."
+  fr: "Si le même conflit revient (après un rebase par exemple), il est résolu comme la dernière fois."
+config.conflict_style:
+  en: "Show the common version in conflicts"
+  fr: "Afficher la version commune dans les conflits"
+config.conflict_style_hint:
+  en: "Also shows the original text, before both changes. Helps to understand who changed what."
+  fr: "Montre aussi le texte d'origine, avant les deux changements. Aide à comprendre qui a changé quoi."
+config.style_zdiff3:
+  en: "Yes, compact (zdiff3)"
+  fr: "Oui, version compacte (zdiff3)"
+config.style_diff3:
+  en: "Yes (diff3)"
+  fr: "Oui (diff3)"
+config.style_merge:
+  en: "No (merge)"
+  fr: "Non (merge)"
+config.algorithm:
+  en: "Comparison method"
+  fr: "Méthode de comparaison"
+config.algorithm_hint:
+  en: "\"Histogram\" splits code better and reduces false conflicts."
+  fr: "« Histogram » découpe mieux le code et réduit les faux conflits."
+config.algo_histogram:
+  en: "Histogram"
+  fr: "Histogram"
+config.algo_patience:
+  en: "Patience"
+  fr: "Patience"
+config.algo_myers:
+  en: "Myers (git's default)"
+  fr: "Myers (défaut de git)"
+config.autocrlf:
+  en: "Windows / Linux line endings"
+  fr: "Fins de ligne Windows / Linux"
+config.autocrlf_hint:
+  en: "Avoids a whole file showing as changed when it moves between a Windows and a Linux computer."
+  fr: "Évite qu'un fichier entier apparaisse modifié quand il passe d'un poste Windows à un poste Linux."
+config.crlf_input:
+  en: "Convert when saving (input)"
+  fr: "Convertir à l'enregistrement (input)"
+config.crlf_true:
+  en: "Convert both ways (true)"
+  fr: "Convertir dans les deux sens (true)"
+config.crlf_false:
+  en: "Change nothing (false)"
+  fr: "Ne rien changer (false)"
+config.enabled:
+  en: "Enabled"
+  fr: "Activé"
+config.apply:
+  en: "Apply"
+  fr: "Appliquer"
+config.not_set:
+  en: "not set"
+  fr: "non réglé"
+config.origin_local:
+  en: "specific to this repository"
+  fr: "propre à ce dépôt"
+config.origin_global:
+  en: "inherited from global"
+  fr: "hérité du global"
+config.origin_system:
+  en: "system setting"
+  fr: "réglage du système"
+config.origin_other:
+  en: "set elsewhere"
+  fr: "réglé ailleurs"
+config.origin_global_scope:
+  en: "global"
+  fr: "global"
+config.recommended:
+  en: "recommended"
+  fr: "recommandé"
+config.advised:
+  en: "advised: %{value}"
+  fr: "conseillé : %{value}"
+config.remove_local:
+  en: "Remove from this repository"
+  fr: "Retirer de ce dépôt"
+config.applied_on_enter:
+  en: "applied when you press Enter"
+  fr: "appliqué en appuyant sur Entrée"
+config.footer_hint:
+  en: "Each change runs a git config command, shown in the Git journal, and can be undone with Ctrl+Z."
+  fr: "Chaque changement lance une commande git config, visible dans le journal Git, et s'annule avec Ctrl+Z."

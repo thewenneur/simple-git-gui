@@ -1,8 +1,10 @@
 //! "Fetch" and the "Send" wizard: the server's work is always fetched and
 //! integrated before pushing, so a push is never refused for being behind.
 
+use super::undo::Undoable;
 use super::*;
 use crate::git::ops::{self, Integration};
+use crate::git::undo::Moves;
 use crate::ui::style::StepState;
 use iced::widget::{column, row};
 
@@ -161,11 +163,14 @@ impl App {
             return Task::none();
         };
         let root = self.repo.as_ref().map(|r| r.paths.root.clone()).unwrap();
-        self.busy = Some(t!("busy.fetching", remote = remote).into_owned());
-        self.notice = None;
-        Task::perform(fetch_and_integrate(root, remote, upstream), |records| {
-            Message::ActionDone(Action::Fetch, records)
-        })
+        let label = Some(t!("busy.fetching", remote = remote).into_owned());
+        let undoable = Undoable::new(t!("undo.fetch").into_owned(), Moves::Integration);
+        self.perform_with(
+            Action::Fetch,
+            label,
+            Some(undoable),
+            fetch_and_integrate(root, remote, upstream),
+        )
     }
 
     pub(super) fn open_send(&mut self) -> Task<Message> {
@@ -272,6 +277,10 @@ impl App {
                 if let Some(w) = self.send.take() {
                     self.notice =
                         Some(t!("send.done", remote = w.remote, branch = w.branch).into_owned());
+                    if let Some(repo) = &mut self.repo {
+                        let sent = t!("undo.send", branch = w.branch).into_owned();
+                        repo.undo.clear_after_push(sent);
+                    }
                 }
             }
             // The integration stopped on a conflict: the wizard closes and
