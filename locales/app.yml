@@ -1577,3 +1577,131 @@ templates.added:
 templates.already:
   en: "The %{name} rules are already in .gitignore."
   fr: "Les règles %{name} sont déjà dans le .gitignore."
+
+# New repositories and servers (remotes)
+busy.creating:
+  en: "Creating %{name}…"
+  fr: "Création de %{name}…"
+busy.testing_remote:
+  en: "Contacting %{name}…"
+  fr: "Contact de %{name}…"
+dialog.new_parent:
+  en: "Folder where the new repository goes"
+  fr: "Dossier où créer le nouveau dépôt"
+error.already_repo:
+  en: "%{path} is already a Git repository: open it instead."
+  fr: "%{path} est déjà un dépôt Git : ouvrez-le plutôt."
+error.create_failed:
+  en: "The repository couldn't be fully created: %{detail}"
+  fr: "Le dépôt n'a pas pu être entièrement créé : %{detail}"
+welcome.new_title:
+  en: "Create a new repository"
+  fr: "Créer un nouveau dépôt"
+welcome.new_hint:
+  en: "Starts version control for a project. An existing folder keeps its files: they are not committed until you choose to."
+  fr: "Démarre le suivi des versions d'un projet. Un dossier existant garde ses fichiers : ils ne sont enregistrés que quand vous le décidez."
+welcome.new_name:
+  en: "Folder name"
+  fr: "Nom du dossier"
+welcome.new_branch:
+  en: "First branch"
+  fr: "Première branche"
+welcome.new_templates:
+  en: "Files to ignore from the start (.gitignore)"
+  fr: "Fichiers à ignorer dès le départ (.gitignore)"
+welcome.new_readme:
+  en: "Add a README.md and make a first commit"
+  fr: "Ajouter un README.md et faire un premier commit"
+welcome.new_remote:
+  en: "Server address (optional, can be added later in Git configuration)"
+  fr: "Adresse du serveur (facultatif, ajoutable plus tard dans Configuration Git)"
+welcome.new_button:
+  en: "Create the repository"
+  fr: "Créer le dépôt"
+remotes.title:
+  en: "Servers (remotes)"
+  fr: "Serveurs (remotes)"
+remotes.intro:
+  en: "Where Get and Send go. Most repositories have one, named origin."
+  fr: "Là où vont Récupérer et Envoyer. La plupart des dépôts en ont un seul, nommé origin."
+remotes.none:
+  en: "No server yet: this repository only exists on this computer. Add one to share it."
+  fr: "Aucun serveur pour l'instant : ce dépôt n'existe que sur cet ordinateur. Ajoutez-en un pour le partager."
+remotes.add:
+  en: "Add a server"
+  fr: "Ajouter un serveur"
+remotes.add_intro:
+  en: "Give the server a short name (origin for the main one) and its address, as shown by GitHub, GitLab or your administrator."
+  fr: "Donnez au serveur un nom court (origin pour le principal) et son adresse, telle que l'affiche GitHub, GitLab ou votre administrateur."
+remotes.rename_intro:
+  en: "The branches seen on the server are renamed too (%{name}/main becomes <new name>/main)."
+  fr: "Les branches vues sur le serveur sont renommées aussi (%{name}/main devient <nouveau nom>/main)."
+remotes.url_intro:
+  en: "Use this when the repository moved. A separate send address is only needed when sending goes elsewhere (e.g. SSH to send, HTTPS to get)."
+  fr: "À utiliser quand le dépôt a déménagé. Une adresse d'envoi séparée ne sert que si l'envoi passe ailleurs (par ex. SSH pour envoyer, HTTPS pour récupérer)."
+remotes.name:
+  en: "Name"
+  fr: "Nom"
+remotes.new_name:
+  en: "New name"
+  fr: "Nouveau nom"
+remotes.url:
+  en: "Address"
+  fr: "Adresse"
+remotes.url_placeholder:
+  en: "https://github.com/team/project.git"
+  fr: "https://github.com/equipe/projet.git"
+remotes.push_url:
+  en: "Send address (optional)"
+  fr: "Adresse d'envoi (facultatif)"
+remotes.push_url_placeholder:
+  en: "same as the address"
+  fr: "identique à l'adresse"
+remotes.push_to:
+  en: "Sends go to %{url}"
+  fr: "Les envois partent vers %{url}"
+remotes.incomplete:
+  en: "Fill in a free name and an address."
+  fr: "Indiquez un nom libre et une adresse."
+remotes.apply:
+  en: "Apply"
+  fr: "Appliquer"
+remotes.test:
+  en: "Test"
+  fr: "Tester"
+remotes.change_url:
+  en: "Change address"
+  fr: "Changer l'adresse"
+remotes.rename:
+  en: "Rename"
+  fr: "Renommer"
+remotes.remove:
+  en: "Remove"
+  fr: "Retirer"
+remotes.test_ok:
+  en: "The server answered."
+  fr: "Le serveur a répondu."
+remotes.test_failed:
+  en: "The server didn't answer: %{detail}"
+  fr: "Le serveur n'a pas répondu : %{detail}"
+undo.remote_add:
+  en: "Add the server %{name}"
+  fr: "Ajouter le serveur %{name}"
+undo.remote_rename:
+  en: "Rename %{from} to %{to}"
+  fr: "Renommer %{from} en %{to}"
+undo.remote_url:
+  en: "Change the address of %{name}"
+  fr: "Changer l'adresse de %{name}"
+undo.remote_remove:
+  en: "Remove the server %{name}"
+  fr: "Retirer le serveur %{name}"
+welcome.new_pick_parent:
+  en: "Choose where to create it…"
+  fr: "Choisir où le créer…"
+repo.not_a_repo_create:
+  en: "This folder is not a Git repository yet. You can make it one with \"Create a new repository\" below: its files stay as they are."
+  fr: "Ce dossier n'est pas encore un dépôt Git. Vous pouvez en faire un avec « Créer un nouveau dépôt » ci-dessous : ses fichiers restent tels quels."
+remotes.incomplete_name:
+  en: "Type a new name that is not used yet."
+  fr: "Indiquez un nouveau nom, pas encore utilisé."

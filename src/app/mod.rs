@@ -10,6 +10,7 @@ mod dragdrop;
 mod history;
 mod integrate;
 mod modules;
+mod remotes;
 mod sync;
 mod undo;
 
@@ -92,6 +93,9 @@ pub struct App {
     pending_parent: Option<PathBuf>,
     /// The section to show once the repository being opened is open.
     pending_section: Option<Section>,
+    new_repo: remotes::NewRepo,
+    /// The folder being opened.
+    opening: Option<PathBuf>,
 }
 
 struct OpenRepo {
@@ -120,6 +124,7 @@ struct OpenRepo {
     resolver_loading: bool,
     after_check: Option<integrate::AfterCheck>,
     modules: modules::ModulesState,
+    remotes_state: remotes::RemotesState,
     /// The repository this one was opened from (as one of its submodules).
     parent: Option<PathBuf>,
     /// A background refresh is running; avoids piling them up.
@@ -154,6 +159,7 @@ impl OpenRepo {
             resolver_loading: false,
             after_check: None,
             modules: modules::ModulesState::default(),
+            remotes_state: remotes::RemotesState::default(),
             parent: None,
             refreshing: false,
             generation: 0,
@@ -195,6 +201,10 @@ pub enum Action {
     Submodule,
     /// Git LFS: locks and tracked patterns.
     Lock,
+    /// Adding, renaming, changing or removing a server.
+    Remote,
+    /// Checking that a server answers.
+    RemoteTest,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -327,6 +337,7 @@ pub enum Message {
     Proceed,
     Proceeded(Vec<CommandRecord>, bool),
     Modules(modules::Msg),
+    Remotes(remotes::Msg),
 }
 
 impl App {
@@ -420,7 +431,16 @@ impl App {
                     Err(e) => {
                         self.pending_parent = None;
                         self.pending_section = None;
-                        self.error = Some(e);
+                        // A plain folder: offer to make it a repository.
+                        let folder = self.opening.take().filter(|_| e == t!("repo.not_a_repo"));
+                        self.error = Some(match folder {
+                            Some(dir) => {
+                                self.new_repo.name = folder_name(&dir);
+                                self.new_repo.parent = dir.parent().map(Path::to_path_buf);
+                                t!("repo.not_a_repo_create").into_owned()
+                            }
+                            None => e,
+                        });
                         Task::none()
                     }
                 }
@@ -866,6 +886,7 @@ impl App {
             Message::Proceed => self.proceed(),
             Message::Proceeded(records, still) => self.proceeded(records, still),
             Message::Modules(msg) => self.modules_update(msg),
+            Message::Remotes(msg) => self.remotes_update(msg),
         }
     }
 
@@ -950,6 +971,9 @@ impl App {
             Some((Some(verb), detail, _)) if verb == "rebase" || verb == "merge" => {
                 self.error = Some(t!("error.integrate_conflict", detail = detail).into_owned());
             }
+            Some((_, detail, _)) if action == Action::RemoteTest => {
+                self.error = Some(t!("remotes.test_failed", detail = detail).into_owned());
+            }
             Some((_, detail, _)) if action == Action::Fetch => {
                 self.error = Some(t!("error.fetch_failed", detail = detail).into_owned());
             }
@@ -967,6 +991,9 @@ impl App {
                         repo.undo
                             .clear_after_push(t!("undo.send", branch = sent).into_owned());
                     }
+                }
+                Action::RemoteTest => {
+                    self.notice = Some(t!("remotes.test_ok").into_owned());
                 }
                 Action::Fetch if fetched => {
                     self.notice = Some(if integrated {
@@ -989,7 +1016,7 @@ impl App {
     /// Reads again what the current section shows besides the status.
     fn reload_section(&mut self) -> Task<Message> {
         match self.repo.as_ref().map(|r| r.section) {
-            Some(Section::Config) => self.load_config(),
+            Some(Section::Config) => Task::batch([self.load_config(), self.load_remotes()]),
             Some(Section::Submodules | Section::Locks) => self.load_modules(modules::Reach::Local),
             _ => Task::none(),
         }
@@ -1010,6 +1037,7 @@ impl App {
     }
 
     fn open(&mut self, dir: PathBuf) -> Task<Message> {
+        self.opening = Some(dir.clone());
         self.busy = Some(t!("busy.opening").into_owned());
         Task::perform(
             async move { repo::discover(&dir).await },
@@ -1549,6 +1577,10 @@ impl App {
                     .width(Length::Fill)
                     .style(style::card),
                 container(clone)
+                    .padding(20)
+                    .width(Length::Fill)
+                    .style(style::card),
+                container(self.new_repo_card(p))
                     .padding(20)
                     .width(Length::Fill)
                     .style(style::card),

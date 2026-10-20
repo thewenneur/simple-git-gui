@@ -33,7 +33,9 @@ cargo run --release -- ~/project    # opens this repository directly
 - Interface in English and French (system language by default, FR/EN switch).
 - Style of the approved wireframes: embedded IBM Plex fonts, light and dark themes that
   follow the system (can be forced with `SIMPLE_GIT_THEME=dark` or `light`).
-- Open an existing repository or clone one (submodules included).
+- Open an existing repository, clone one (submodules included) or create a new one
+  (first branch, starting `.gitignore` rules, README and first commit, server address).
+  Opening a plain folder offers to make it a repository.
 - See the current branch, how it stands against the server, and the changed files, in
   plain words, with the git notation in advanced mode.
 - Readable diffs: unified or side by side, whitespace-only changes hidden, moved lines
@@ -48,6 +50,8 @@ cargo run --release -- ~/project    # opens this repository directly
   `.gitignore` or only for you in `.git/info/exclude`.
 - An explained **Git configuration** screen (identity, sync, conflicts, line endings),
   per repository or for every repository, showing the exact `git config` command.
+- **Servers (remotes)**: add, rename, change the address (and a separate send address),
+  remove and test a server, each with its command shown and undoable with Ctrl+Z.
 - **History and branches**: a branch graph of every branch, the details of a commit
   (files and diffs), and the comparison of two commits (Ctrl+click) or of a commit with
   your files.
@@ -107,7 +111,8 @@ The roadmap is in [docs/PLAN.md](docs/PLAN.md).
 - `src/git/integrate.rs`: merge and rebase with fewer false conflicts, and the branch
   name of each side; `src/git/conflict.rs`: conflict parsing and duplicated blocks;
   `src/git/rewrite.rs`: swap, squash and reword through a prepared interactive rebase.
-- `src/git/config.rs`: the settings of the Git configuration screen.
+- `src/git/config.rs`: the settings of the Git configuration screen; `src/git/remotes.rs`:
+  remotes and `git init`.
 - `src/git/submodules.rs`: submodule state and commands; `src/git/lfs.rs`: Git LFS
   patterns and locks; `src/git/templates.rs`: the `.gitignore` templates.
 - `src/app/mod.rs`: application state, messages and the main layout; `src/app/changes.rs`
@@ -115,7 +120,8 @@ The roadmap is in [docs/PLAN.md](docs/PLAN.md).
   (Ctrl+Z / Ctrl+Y), `src/app/config.rs` (Git configuration screen), `src/app/history.rs`
   (graph, commit details, menus and dialogs), `src/app/integrate.rs` (merge and rebase
   assistant), `src/app/dragdrop.rs` (drag and drop gestures and their confirmation),
-  `src/app/modules.rs` (submodules, locked files and `.gitignore` templates).
+  `src/app/modules.rs` (submodules, locked files and `.gitignore` templates),
+  `src/app/remotes.rs` (servers card and new repository form).
 - `src/ui/style.rs`: light and dark palettes, fonts and widget styles; `src/ui/icons.rs`: icons.
 - `assets/fonts/`: IBM Plex Sans and Mono (SIL OFL 1.1 license, see `OFL.txt`).
 - `locales/app.yml`: every UI text, in English and French side by side. A test checks that

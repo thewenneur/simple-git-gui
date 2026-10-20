@@ -53,6 +53,12 @@ GitHub Actions.
 Status: done. Locks need a server with the Git LFS locking API (GitHub, GitLab, Gitea);
 lock owners are recognised by the server, or by `user.name` when it can't verify them.
 
+Also (asked during step 4): create a new repository from the welcome screen (folder,
+first branch, starting `.gitignore` rules, README and first commit, optional server),
+also offered when opening a folder that is not a repository yet; and manage the
+servers (remotes) in the Git configuration screen: add, rename, change the address
+(with an optional separate send address), remove and test, each undoable with Ctrl+Z.
+
 ## 5. Workspaces (git worktrees)
 Several branches checked out side by side, each in its own folder, sharing one
 repository: build or simulate one branch while editing another, without
