@@ -13,6 +13,7 @@ mod message;
 mod modules;
 mod remotes;
 mod sync;
+mod tutorial;
 mod undo;
 mod viewer;
 mod worktrees;
@@ -101,6 +102,14 @@ pub struct App {
     opening: Option<PathBuf>,
     /// The workspace that has the branch git refused to switch to.
     elsewhere: Option<PathBuf>,
+    settings: crate::settings::Settings,
+    tutorial: Option<tutorial::Tutorial>,
+    /// The tutorial's track choice is shown.
+    tutorial_offer: bool,
+    /// The menu of the "?" button is open.
+    help_open: bool,
+    /// Drag-and-drop actions confirmed so far (for the tutorial).
+    drops: u32,
     /// A file or the project at a commit, shown over the whole window.
     viewer: Option<viewer::Viewer>,
 }
@@ -353,6 +362,7 @@ pub enum Message {
     Modules(modules::Msg),
     Remotes(remotes::Msg),
     Worktrees(worktrees::Msg),
+    Tutorial(tutorial::Msg),
     Viewer(viewer::Msg),
 }
 
@@ -368,8 +378,13 @@ impl App {
             lang: Some(lang),
             dark: forced.as_deref() == Some("dark"),
             theme_forced: matches!(forced.as_deref(), Some("dark" | "light")),
+            settings: crate::settings::Settings::load(),
             ..Self::default()
         };
+        // The tutorial is offered once, at the first launch.
+        if initial_dir.is_none() && app.tutorial_first_launch() {
+            app.tutorial_offer = true;
+        }
         let check = Task::perform(run(GitCommand::new(["--version"])), Message::GitChecked);
         let theme = iced::system::theme().map(Message::SystemTheme);
         let open = match initial_dir {
@@ -404,6 +419,11 @@ impl App {
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
+        let task = self.handle(message);
+        Task::batch([task, self.tutorial_progress()])
+    }
+
+    fn handle(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::GitChecked(record) => {
                 if record.success() {
@@ -433,6 +453,7 @@ impl App {
                 match result {
                     Ok(paths) => {
                         self.error = None;
+                        self.tutorial_opened(&paths.root);
                         let mut repo = OpenRepo::new(paths);
                         repo.parent = self.pending_parent.take().filter(|p| *p != repo.paths.root);
                         if let Some(section) = self.pending_section.take() {
@@ -911,6 +932,7 @@ impl App {
             Message::Modules(msg) => self.modules_update(msg),
             Message::Remotes(msg) => self.remotes_update(msg),
             Message::Worktrees(msg) => self.worktrees_update(msg),
+            Message::Tutorial(msg) => self.tutorial_update(msg),
             Message::Viewer(msg) => self.viewer_update(msg),
         }
     }
@@ -1240,9 +1262,16 @@ impl App {
 
         let body: Element<'_, Message> = match &self.repo {
             Some(repo) => row![
-                self.sidebar(repo, p),
+                self.dim(tutorial::Region::Sidebar, self.sidebar(repo, p)),
                 vline(),
-                column![content, self.journal_view()].width(Length::Fill)
+                column![
+                    self.dim(tutorial::Region::Content, content),
+                    self.dim(
+                        tutorial::Region::Journal,
+                        self.spot(tutorial::Spot::Journal, self.journal_view())
+                    )
+                ]
+                .width(Length::Fill)
             ]
             .height(Length::Fill)
             .into(),
@@ -1253,7 +1282,7 @@ impl App {
 
         let page = mouse_area(
             container(column![
-                self.top_bar(p),
+                self.dim(tutorial::Region::TopBar, self.top_bar(p)),
                 hline(style::strong_separator),
                 body
             ])
@@ -1269,7 +1298,9 @@ impl App {
             mouse::Interaction::None
         });
 
-        let dialog = if let Some(wizard) = &self.send {
+        let dialog = if self.tutorial_offer {
+            Some(self.tutorial_offer_view(p))
+        } else if let Some(wizard) = &self.send {
             Some(self.send_dialog(wizard, p))
         } else if let Some(menu) = self.repo.as_ref().and_then(|r| r.ignore_menu.as_ref()) {
             Some(self.ignore_dialog(menu, p))
@@ -1290,37 +1321,38 @@ impl App {
                 .into(),
             None => page.into(),
         };
+        // Always a stack, so the page keeps its state (scrolling) when
+        // something opens over it.
+        let mut layers: Vec<Element<'_, Message>> = vec![page];
         if let Some(dialog) = dialog {
-            return stack![
-                page,
-                opaque(
-                    container(dialog)
-                        .center(Length::Fill)
-                        .padding(40)
-                        .style(style::backdrop)
+            layers.push(opaque(
+                container(dialog)
+                    .center(Length::Fill)
+                    .padding(40)
+                    .style(style::backdrop),
+            ));
+        } else if let Some(menu) = &self.context_menu {
+            layers.push(opaque(
+                mouse_area(
+                    container(self.context_menu_view(menu, p))
+                        .width(Length::Fill)
+                        .height(Length::Fill),
                 )
-            ]
-            .into();
+                .on_press(Message::CloseMenu)
+                .on_right_press(Message::CloseMenu),
+            ));
+        } else if let Some(overlay) = self.drag_overlay(p) {
+            layers.push(overlay);
         }
-        if let Some(menu) = &self.context_menu {
-            return stack![
-                page,
-                opaque(
-                    mouse_area(
-                        container(self.context_menu_view(menu, p))
-                            .width(Length::Fill)
-                            .height(Length::Fill)
-                    )
-                    .on_press(Message::CloseMenu)
-                    .on_right_press(Message::CloseMenu)
-                ),
-            ]
-            .into();
+        if !self.tutorial_offer
+            && let Some(coach) = self.coach_view(p)
+        {
+            layers.push(coach);
         }
-        if let Some(overlay) = self.drag_overlay(p) {
-            return stack![page, overlay].into();
+        if self.help_open {
+            layers.push(self.help_menu());
         }
-        page
+        iced::widget::Stack::with_children(layers).into()
     }
 
     fn top_bar(&self, p: &'static Palette) -> Element<'_, Message> {
@@ -1377,7 +1409,7 @@ impl App {
         bar = bar.push(space::horizontal());
 
         if let Some(repo) = &self.repo {
-            bar = bar.push(self.undo_buttons(repo, p));
+            bar = bar.push(self.spot(tutorial::Spot::Undo, self.undo_buttons(repo, p)));
         }
         if let Some(status) = self.repo.as_ref().and_then(|r| r.status.as_ref()) {
             let mut fetch = row![icon(Icon::Fetch, 16.0, p.text), text(t!("toolbar.fetch"))]
@@ -1409,18 +1441,24 @@ impl App {
             }
             bar = bar
                 .push(
-                    button(centered(fetch))
-                        .padding([0, 14])
-                        .height(36)
-                        .on_press_maybe(self.can_fetch().then_some(Message::Fetch))
-                        .style(style::secondary),
+                    self.spot(
+                        tutorial::Spot::Get,
+                        button(centered(fetch))
+                            .padding([0, 14])
+                            .height(36)
+                            .on_press_maybe(self.can_fetch().then_some(Message::Fetch))
+                            .style(style::secondary),
+                    ),
                 )
                 .push(
-                    button(centered(send))
-                        .padding([0, 16])
-                        .height(36)
-                        .on_press_maybe(self.can_send().then_some(Message::OpenSend))
-                        .style(style::primary),
+                    self.spot(
+                        tutorial::Spot::Send,
+                        button(centered(send))
+                            .padding([0, 16])
+                            .height(36)
+                            .on_press_maybe(self.can_send().then_some(Message::OpenSend))
+                            .style(style::primary),
+                    ),
                 );
         }
 
@@ -1440,6 +1478,7 @@ impl App {
                 .style(style::segment(self.lang == Some(lang))),
             );
         }
+        bar = bar.push(self.help_button(p));
         bar = bar.push(container(langs).padding(1).style(style::segmented_frame));
         bar = bar.push(
             checkbox(self.advanced)
@@ -1491,15 +1530,21 @@ impl App {
                 repo.section,
                 p,
             ),
-            nav_item(
-                Icon::Lock,
-                t!("nav.locks").into_owned(),
-                None,
-                Section::Locks,
-                repo.section,
-                p,
+            self.spot(
+                tutorial::Spot::Nav(Section::Locks),
+                nav_item(
+                    Icon::Lock,
+                    t!("nav.locks").into_owned(),
+                    None,
+                    Section::Locks,
+                    repo.section,
+                    p,
+                )
             ),
-            self.workspaces_item(repo, p),
+            self.spot(
+                tutorial::Spot::Nav(Section::Workspaces),
+                self.workspaces_item(repo, p)
+            ),
             nav_item(
                 Icon::Settings,
                 t!("nav.config").into_owned(),
@@ -1637,6 +1682,10 @@ impl App {
 
         scrollable(
             column![
+                container(self.tutorial_card(p))
+                    .padding(20)
+                    .width(Length::Fill)
+                    .style(style::card),
                 container(open)
                     .padding(20)
                     .width(Length::Fill)
@@ -1699,7 +1748,7 @@ impl App {
                 Some(status) => self.changes_view(repo, status, p),
                 None => text(t!("repo.reading_status")).color(p.muted).into(),
             },
-            (Section::History, _) => self.history_view(repo, p),
+            (Section::History, _) => self.spot(tutorial::Spot::History, self.history_view(repo, p)),
             (Section::Submodules, _) => self.submodules_view(repo, p),
             (Section::Locks, _) => self.locks_view(repo, p),
             (Section::Workspaces, _) => self.worktrees_view(repo, p),

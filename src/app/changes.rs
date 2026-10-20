@@ -394,10 +394,16 @@ impl App {
         status: &'a Status,
         p: &'static Palette,
     ) -> Element<'a, Message> {
-        row![self.file_list(repo, status, p), self.diff_panel(repo, p)]
-            .spacing(16)
-            .height(Length::Fill)
-            .into()
+        row![
+            self.spot(
+                super::tutorial::Spot::FileList,
+                self.file_list(repo, status, p)
+            ),
+            self.diff_panel(repo, p)
+        ]
+        .spacing(16)
+        .height(Length::Fill)
+        .into()
     }
 
     fn file_list<'a>(

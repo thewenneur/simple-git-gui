@@ -96,3 +96,13 @@ A guided tour on first launch, replayable at any time from the help menu
 - Each step can be skipped; the tour can be left and resumed where it stopped.
 - Short tracks per audience (hardware, design, advanced) picked at the start.
 - Shown once automatically (remembered in the app's settings), in English and French.
+
+Status: done. Three tracks: hardware (look at a change, stage, commit, undo and redo,
+get, send, create a branch, settle a conflict, the Git log), design (the same first
+steps, then locked files) and advanced (the branch tree, a branch, Ctrl+drag to copy a
+commit, a conflict, a workspace, the Git log). Each step checks the repository itself
+(a commit appeared, a branch was added, the merge was saved...) and moves on. The
+practice repository is a small VHDL project with its own "server" (a bare repository
+next to it) and a colleague, Léa, who already sent work and has a branch that conflicts
+with `main`. Locking is shown rather than done: the practice server has no LFS locks.
+Progress and "already shown" live in `settings.txt` in the user's configuration folder.
