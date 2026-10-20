@@ -4,13 +4,18 @@ name: Release
 # - Windows: one .exe, with the C runtime linked in.
 # - macOS: a universal (Apple Silicon + Intel) Simple Git.app, zipped.
 # - Linux: the binary in a .tar.gz.
-# A pushed tag `v*` attaches them to a GitHub release; a manual run only
-# keeps them as workflow artifacts.
+# A pushed tag `v*` attaches them to a GitHub release; a manual run (or a
+# pull request changing the packaging) only keeps them as workflow artifacts.
 
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+  # Changes to the packaging itself are checked before they are merged.
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - packaging/**
 
 permissions:
   contents: write
