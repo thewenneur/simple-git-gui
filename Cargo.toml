@@ -4,9 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-# Both renderers are built; main.rs picks the software one (tiny-skia) unless
-# SIMPLE_GIT_GPU=1: the GPU one (wgpu) loads the graphics driver, which costs
-# 100+ MB of RAM for this simple flat UI.
+# Both renderers are built; main.rs picks one per platform to save memory
+# (see `choose_renderer`).
 iced = { version = "0.14.0", features = ["tokio", "svg"] }
 libc = "0.2.191"
 rfd = "0.17.2"
