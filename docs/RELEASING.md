@@ -10,7 +10,7 @@ is public until the draft is published by hand.
 | --- | --- |
 | `…-windows-x86_64-setup.exe` | Inno Setup, from `packaging/windows/simple-git.iss` |
 | `…-windows-x86_64-portable.exe` | the release executable, C runtime linked in |
-| `…-macos-universal.dmg` | `lipo` (Apple Silicon + Intel), `packaging/macos/Info.plist`, `hdiutil` |
+| `…-macos-universal.dmg` | `lipo` (Apple Silicon + Intel), `packaging/macos/Info.plist`, `hdiutil`; also holds `packaging/macos/install-terminal-command.command` |
 | `…-linux-x86_64.AppImage` | `appimagetool`, with `packaging/linux/*.desktop` |
 | `…-linux-x86_64.tar.gz` | binary, `.desktop`, icon and `packaging/linux/install.sh` |
 

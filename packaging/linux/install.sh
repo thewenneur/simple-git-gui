@@ -27,5 +27,17 @@ sed "s|^Exec=simple-git-gui|Exec=\"$bin/simple-git-gui\"|" "$here/$id.desktop" >
 command -v update-desktop-database >/dev/null && update-desktop-database "$apps" || true
 command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -q "$icons" 2>/dev/null || true
 
-echo "Simple Git installed: find it in your applications menu, or run $bin/simple-git-gui"
+# The `simple-git-gui` command: most distributions put ~/.local/bin in the
+# PATH at login when it exists; add it otherwise.
+case ":$PATH:" in
+    *":$bin:"*) ;;
+    *)
+        if ! grep -q 'simple-git-gui: PATH' "$HOME/.profile" 2>/dev/null; then
+            printf '\nexport PATH="$HOME/.local/bin:$PATH"  # simple-git-gui: PATH\n' >> "$HOME/.profile"
+        fi
+        echo "Log out and back in (or open a new login shell) for the simple-git-gui command."
+        ;;
+esac
+
+echo "Simple Git installed: find it in your applications menu, or type 'simple-git-gui .' in a terminal to open the current folder."
 command -v git >/dev/null || echo "Note: Git is not installed yet. Install it with your package manager (for example: sudo apt install git)."

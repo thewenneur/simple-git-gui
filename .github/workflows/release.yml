@@ -93,8 +93,10 @@ jobs:
           cp assets/icon/simple-git.icns "$app/Contents/Resources/"
           # Not notarized: an ad-hoc signature lets it run after "Open" in the Finder menu.
           codesign --force --deep --sign - "$app"
-          # The disk image shows the app next to an Applications shortcut to drag it onto.
+          # The disk image shows the app next to an Applications shortcut to drag it
+          # onto, and a script adding the `simple-git-gui` terminal command.
           ln -s /Applications build/dmg/Applications
+          cp packaging/macos/install-terminal-command.command "build/dmg/Install Terminal Command.command"
           dmg="dist/simple-git-gui-${{ steps.version.outputs.version }}-macos-universal.dmg"
           # hdiutil sometimes fails with "Resource busy" on CI runners: retry.
           for i in 1 2 3 4; do
