@@ -10,7 +10,16 @@ A portable desktop application written in Rust with [iced](https://iced.rs). It 
 ## Requirements
 
 - [Git](https://git-scm.com) installed and available in the `PATH`.
+- Optional: [Git LFS](https://git-lfs.com) for large binary files and file locking.
 - To build: stable Rust (`rustup`).
+
+## Download
+
+Portable executables are attached to each [release](https://github.com/thewenneur/simple-git-gui/releases): a single `.exe`
+for Windows, a zipped `Simple Git.app` for macOS (Apple Silicon and Intel; not notarized,
+so open it the first time with right-click → Open) and a `.tar.gz` for Linux. They are
+built by `.github/workflows/release.yml` when a `v*` tag is pushed, or on demand from the
+Actions tab.
 
 ## Running
 
@@ -62,6 +71,16 @@ cargo run --release -- ~/project    # opens this repository directly
   (`zdiff3`, `rerere`, histogram diff, whitespace ignored), and a merge is checked
   before it is saved: blocks found twice because one side moved them are pointed out
   and can be removed in one click.
+- **Submodules**: every submodule with its state in plain words (up to date, new commits
+  on its server, changed here, on another commit than the recorded one, not downloaded),
+  the pinned and latest commits, and one-click download, update (then recorded in this
+  repository), go back, record, sync all and add. "Open" switches to the submodule, with
+  a banner to come back.
+- **Locked files** (Git LFS): who holds which binary file and since when, lock and
+  release in one click (Ctrl+Z gives it back), copy a colleague's name, choose which file
+  types go to LFS (`git lfs track --lockable`) and set LFS up in the repository.
+- Ready-made **`.gitignore` rules** for Vivado, Quartus, ModelSim/Questa, GHDL/NVC, KiCad,
+  Office, the three systems, VS Code, Python and Rust, added without duplicates and undoable.
 - **Git log panel**: every command run by your actions, its result and its duration.
   Read-only commands (`status`, `diff`, `log`...) and automatic refreshes are hidden
   by default. In advanced mode: a switch to show them, full outputs and a console to
@@ -89,11 +108,14 @@ The roadmap is in [docs/PLAN.md](docs/PLAN.md).
   name of each side; `src/git/conflict.rs`: conflict parsing and duplicated blocks;
   `src/git/rewrite.rs`: swap, squash and reword through a prepared interactive rebase.
 - `src/git/config.rs`: the settings of the Git configuration screen.
+- `src/git/submodules.rs`: submodule state and commands; `src/git/lfs.rs`: Git LFS
+  patterns and locks; `src/git/templates.rs`: the `.gitignore` templates.
 - `src/app/mod.rs`: application state, messages and the main layout; `src/app/changes.rs`
   (changed files, diff, commit), `src/app/sync.rs` (get and send), `src/app/undo.rs`
   (Ctrl+Z / Ctrl+Y), `src/app/config.rs` (Git configuration screen), `src/app/history.rs`
   (graph, commit details, menus and dialogs), `src/app/integrate.rs` (merge and rebase
-  assistant), `src/app/dragdrop.rs` (drag and drop gestures and their confirmation).
+  assistant), `src/app/dragdrop.rs` (drag and drop gestures and their confirmation),
+  `src/app/modules.rs` (submodules, locked files and `.gitignore` templates).
 - `src/ui/style.rs`: light and dark palettes, fonts and widget styles; `src/ui/icons.rs`: icons.
 - `assets/fonts/`: IBM Plex Sans and Mono (SIL OFL 1.1 license, see `OFL.txt`).
 - `locales/app.yml`: every UI text, in English and French side by side. A test checks that

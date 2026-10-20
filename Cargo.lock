@@ -3182,6 +3182,7 @@ dependencies = [
  "libc",
  "rfd",
  "rust-i18n",
+ "serde_json",
  "shell-words",
  "sys-locale",
  "tempfile",

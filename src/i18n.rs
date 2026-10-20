@@ -94,6 +94,7 @@ mod tests {
             include_str!("app/history.rs"),
             include_str!("app/integrate.rs"),
             include_str!("app/dragdrop.rs"),
+            include_str!("app/modules.rs"),
             include_str!("git/undo.rs"),
             include_str!("git/diff.rs"),
             include_str!("git/ops.rs"),

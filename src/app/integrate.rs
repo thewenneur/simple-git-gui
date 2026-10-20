@@ -393,6 +393,7 @@ impl App {
                     config: None,
                     refs: Vec::new(),
                     resolved: None,
+                    inverse: None,
                 };
                 Message::IntegrationFinished(Box::new(entry), check.map(Box::new), records)
             },

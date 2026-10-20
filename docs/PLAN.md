@@ -49,3 +49,38 @@ which gets colleagues' work first.
 Submodules (add, update, sync, status), Git LFS and file locking for design binaries,
 `.gitignore` templates, portable Windows/macOS/Linux executables via
 GitHub Actions.
+
+Status: done. Locks need a server with the Git LFS locking API (GitHub, GitLab, Gitea);
+lock owners are recognised by the server, or by `user.name` when it can't verify them.
+
+## 5. Workspaces (git worktrees)
+Several branches checked out side by side, each in its own folder, sharing one
+repository: build or simulate one branch while editing another, without
+switching back and forth or setting work aside.
+- A "Workspaces" screen listing every worktree (`git worktree list --porcelain`): folder,
+  branch, state (clean, modified, locked, missing folder), with "Open" to switch the
+  app to it.
+- "New workspace" from a branch or a commit (`git worktree add <folder> <branch>`, or
+  `-b <new-branch>`), with a suggested folder next to the repository.
+- Drag a branch from the tree view onto the Workspaces item to open it in a new one.
+- Remove (`git worktree remove`, refused while it has changes, `--force` in advanced
+  mode), prune stale entries (`git worktree prune`), lock/unlock a worktree on a
+  removable drive (`git worktree lock --reason`).
+- Explain why a branch can't be checked out here when another workspace already has it,
+  and offer to open that workspace instead.
+- Submodules in a new workspace are downloaded on request (`git submodule update --init`).
+- Undo with Ctrl+Z where possible (a removed workspace with no changes can be re-added).
+
+## 6. Interactive tutorial
+A guided tour on first launch, replayable at any time from the help menu
+("Replay the tutorial") and from the start screen.
+- Runs on a practice repository created in a temporary folder, so nothing the
+  user does in it can touch real work; the git commands it runs show in the Git log
+  like everywhere else.
+- Steps highlight the real interface (the rest dimmed) and wait for the user to do the
+  action: open a repository, look at a change, stage and commit, get and send, create a
+  branch, drag a commit in the tree, settle a conflict with the named-side assistant,
+  undo with Ctrl+Z, lock a binary file.
+- Each step can be skipped; the tour can be left and resumed where it stopped.
+- Short tracks per audience (hardware, design, advanced) picked at the start.
+- Shown once automatically (remembered in the app's settings), in English and French.

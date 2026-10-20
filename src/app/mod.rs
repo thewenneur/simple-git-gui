@@ -9,6 +9,7 @@ mod config;
 mod dragdrop;
 mod history;
 mod integrate;
+mod modules;
 mod sync;
 mod undo;
 
@@ -87,6 +88,10 @@ pub struct App {
     /// A branch whose deletion is running, to offer forcing it if refused.
     pending_delete: Option<String>,
     integration_prompt: Option<integrate::Prompt>,
+    /// The repository a submodule is opened from, until it is open.
+    pending_parent: Option<PathBuf>,
+    /// The section to show once the repository being opened is open.
+    pending_section: Option<Section>,
 }
 
 struct OpenRepo {
@@ -114,6 +119,9 @@ struct OpenRepo {
     resolver: Option<integrate::Resolver>,
     resolver_loading: bool,
     after_check: Option<integrate::AfterCheck>,
+    modules: modules::ModulesState,
+    /// The repository this one was opened from (as one of its submodules).
+    parent: Option<PathBuf>,
     /// A background refresh is running; avoids piling them up.
     refreshing: bool,
     /// Increased at each refresh; older results are dropped.
@@ -145,6 +153,8 @@ impl OpenRepo {
             resolver: None,
             resolver_loading: false,
             after_check: None,
+            modules: modules::ModulesState::default(),
+            parent: None,
             refreshing: false,
             generation: 0,
         }
@@ -182,12 +192,17 @@ pub enum Action {
     Push,
     /// Swapping, squashing or rewording commits not sent yet.
     Rewrite,
+    Submodule,
+    /// Git LFS: locks and tracked patterns.
+    Lock,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Section {
     Changes,
     History,
+    Submodules,
+    Locks,
     Config,
 }
 
@@ -311,6 +326,7 @@ pub enum Message {
     DismissAfterCheck,
     Proceed,
     Proceeded(Vec<CommandRecord>, bool),
+    Modules(modules::Msg),
 }
 
 impl App {
@@ -390,10 +406,20 @@ impl App {
                 match result {
                     Ok(paths) => {
                         self.error = None;
-                        self.repo = Some(OpenRepo::new(paths));
-                        self.refresh(false)
+                        let mut repo = OpenRepo::new(paths);
+                        repo.parent = self.pending_parent.take().filter(|p| *p != repo.paths.root);
+                        if let Some(section) = self.pending_section.take() {
+                            repo.section = section;
+                        }
+                        self.repo = Some(repo);
+                        Task::batch([
+                            self.refresh(false),
+                            self.load_modules(modules::Reach::Local),
+                        ])
                     }
                     Err(e) => {
+                        self.pending_parent = None;
+                        self.pending_section = None;
                         self.error = Some(e);
                         Task::none()
                     }
@@ -457,13 +483,13 @@ impl App {
             }
             Message::SelectSection(section) => {
                 if let Some(repo) = &mut self.repo {
+                    if repo.section != section {
+                        // Ask the servers again when coming back.
+                        repo.modules.checked = false;
+                    }
                     repo.section = section;
                 }
-                if section == Section::Config {
-                    self.load_config()
-                } else {
-                    Task::none()
-                }
+                self.reload_section()
             }
             Message::CloneUrlChanged(url) => {
                 self.clone_url = url;
@@ -840,6 +866,7 @@ impl App {
             }
             Message::Proceed => self.proceed(),
             Message::Proceeded(records, still) => self.proceeded(records, still),
+            Message::Modules(msg) => self.modules_update(msg),
         }
     }
 
@@ -952,15 +979,20 @@ impl App {
                 _ => {}
             },
         }
-        let refresh = self.refresh(false);
-        if self
-            .repo
-            .as_ref()
-            .is_some_and(|r| r.section == Section::Config)
-        {
-            Task::batch([refresh, self.load_config()])
+        let section = if action == Action::Lock {
+            self.load_modules(modules::Reach::Locks)
         } else {
-            refresh
+            self.reload_section()
+        };
+        Task::batch([self.refresh(false), section])
+    }
+
+    /// Reads again what the current section shows besides the status.
+    fn reload_section(&mut self) -> Task<Message> {
+        match self.repo.as_ref().map(|r| r.section) {
+            Some(Section::Config) => self.load_config(),
+            Some(Section::Submodules | Section::Locks) => self.load_modules(modules::Reach::Local),
+            _ => Task::none(),
         }
     }
 
@@ -1361,6 +1393,22 @@ impl App {
                 p,
             ),
             nav_item(
+                Icon::Submodule,
+                t!("nav.submodules").into_owned(),
+                Some(repo.modules.attention()).filter(|n| *n > 0),
+                Section::Submodules,
+                repo.section,
+                p,
+            ),
+            nav_item(
+                Icon::Lock,
+                t!("nav.locks").into_owned(),
+                None,
+                Section::Locks,
+                repo.section,
+                p,
+            ),
+            nav_item(
                 Icon::Settings,
                 t!("nav.config").into_owned(),
                 None,
@@ -1546,6 +1594,9 @@ impl App {
         if let Some(check) = &repo.after_check {
             view = view.push(self.after_check_view(check, p));
         }
+        if let Some(parent) = &repo.parent {
+            view = view.push(self.parent_banner(parent));
+        }
         let section = match (repo.section, repo.operation) {
             (Section::Changes, Some(op)) => self.integration_view(repo, op, p),
             (Section::Changes, None) => match &repo.status {
@@ -1553,6 +1604,8 @@ impl App {
                 None => text(t!("repo.reading_status")).color(p.muted).into(),
             },
             (Section::History, _) => self.history_view(repo, p),
+            (Section::Submodules, _) => self.submodules_view(repo, p),
+            (Section::Locks, _) => self.locks_view(repo, p),
             (Section::Config, _) => self.config_view(repo, p),
         };
         view.push(section).into()
