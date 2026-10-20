@@ -19,7 +19,8 @@ Installers and portable executables are attached to each
 [release](https://github.com/thewenneur/simple-git-gui/releases):
 
 - **Windows**: a setup `.exe` that installs for the current user without administrator
-  rights, or a single portable `.exe` to run from anywhere.
+  rights and adds Simple Git to the `PATH` (so `simple-git-gui .` opens the current
+  folder from a terminal), or a single portable `.exe` to run from anywhere.
 - **macOS** (Apple Silicon and Intel): a `.dmg`; drag Simple Git onto Applications. It is
   not notarized, so open it the first time with right-click → Open.
 - **Linux**: an AppImage, or a `.tar.gz` whose `install.sh` adds Simple Git to the

@@ -32,7 +32,7 @@ First release.
 - An interactive tutorial on a practice repository, offered on first launch.
 - Interface in English and French, light and dark themes, and a Git log panel showing
   every command run, with a console in advanced mode.
-- App icon, Windows installer (per user, no administrator rights) and portable `.exe`,
+- App icon, Windows installer (per user, no administrator rights, adds itself to the `PATH`) and portable `.exe`,
   macOS disk image (universal), Linux AppImage and `.tar.gz` with an install script.
 
 [0.1.0]: https://github.com/thewenneur/simple-git-gui/releases/tag/v0.1.0
