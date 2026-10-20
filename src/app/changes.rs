@@ -2,7 +2,7 @@
 //! next commit, the commit form, and the diff of the selected file.
 
 use iced::widget::text::{LineHeight, Wrapping};
-use iced::widget::{column, mouse_area, row, text_editor};
+use iced::widget::{column, mouse_area, rich_text, row, span, text_editor};
 
 use super::undo::Undoable;
 use super::*;
@@ -10,6 +10,7 @@ use crate::git::diff::{self, DiffOptions, FileDiff, Hunk, Line, LineKind};
 use crate::git::ignore::{self, IgnoreRule, IgnoreTarget};
 use crate::git::ops;
 use crate::git::undo::{FileChange, Moves};
+use crate::ui::syntax::{self, Kind, Language, State};
 
 /// Width of the file list card.
 const LIST_WIDTH: f32 = 380.0;
@@ -813,6 +814,13 @@ impl App {
                 .align_y(Alignment::Center),
             );
         }
+        if let Some(lang) = repo
+            .diff
+            .as_ref()
+            .and_then(|view| syntax::language_for(&view.selection.path))
+        {
+            legend = legend.push(text(lang.name).size(12).font(style::MONO).color(p.muted));
+        }
         let legend = legend
             .push(space::horizontal())
             .push(
@@ -887,13 +895,14 @@ impl App {
     ) -> Element<'a, Message> {
         let mut col = column![];
         let mut budget = MAX_DIFF_LINES;
+        let lang = syntax::language_for(&view.selection.path);
         for (index, hunk) in view.diff.hunks.iter().enumerate() {
             col = col.push(self.hunk_header(view, index, hunk, tracked, p));
             let shown = hunk.lines.len().min(budget);
             if self.side_by_side {
-                col = col.push(side_by_side(&hunk.lines[..shown], p));
+                col = col.push(side_by_side(&hunk.lines[..shown], lang, p));
             } else {
-                col = col.push(unified(&hunk.lines[..shown], p));
+                col = col.push(unified(&hunk.lines[..shown], lang, p));
             }
             budget -= shown;
             if budget == 0 {
@@ -1052,12 +1061,79 @@ fn number<'a>(n: Option<u32>, color: Color) -> Element<'a, Message> {
     .into()
 }
 
-fn code<'a>(line: &Line, color: Color) -> Element<'a, Message> {
-    text(line.text.replace('\t', "    "))
+/// Colored pieces of a line, as byte ranges in its text.
+type Pieces = Vec<(usize, usize, Kind)>;
+
+/// Syntax pieces of each line. Multi-line comments and strings are followed
+/// separately on the old side (removed lines) and the new side (added).
+pub(super) fn highlight_lines(lines: &[Line], lang: Option<&Language>) -> Vec<Pieces> {
+    let Some(lang) = lang else {
+        return vec![Vec::new(); lines.len()];
+    };
+    let (mut old, mut new) = (State::Normal, State::Normal);
+    lines
+        .iter()
+        .map(|line| match line.kind {
+            LineKind::Removed => syntax::highlight(lang, &line.text, &mut old),
+            LineKind::Added => syntax::highlight(lang, &line.text, &mut new),
+            LineKind::Context => {
+                let same = old == new;
+                let pieces = syntax::highlight(lang, &line.text, &mut new);
+                if same {
+                    old = new;
+                } else {
+                    syntax::highlight(lang, &line.text, &mut old);
+                }
+                pieces
+            }
+        })
+        .collect()
+}
+
+/// Text of a line in the monospace font: `color` for plain text, the theme's
+/// syntax colors for keywords, comments, strings...
+pub(super) fn code<'a>(
+    line: &'a str,
+    pieces: &[(usize, usize, Kind)],
+    color: Color,
+    p: &'static Palette,
+) -> Element<'a, Message> {
+    let expand = |s: &'a str| -> std::borrow::Cow<'a, str> {
+        if s.contains('\t') {
+            s.replace('\t', "    ").into()
+        } else {
+            s.into()
+        }
+    };
+    if pieces.is_empty() {
+        return text(expand(line))
+            .size(13)
+            .font(style::MONO)
+            .line_height(LineHeight::Absolute(LINE_HEIGHT.into()))
+            .color(color)
+            .width(Length::Fill)
+            .into();
+    }
+    let s = &p.syntax;
+    let spans: Vec<_> = pieces
+        .iter()
+        .map(|&(start, end, kind)| {
+            let piece_color = match kind {
+                Kind::Plain => color,
+                Kind::Keyword => s.keyword,
+                Kind::Type => s.kind,
+                Kind::Comment => s.comment,
+                Kind::String => s.string,
+                Kind::Number => s.number,
+                Kind::Attribute => s.attribute,
+            };
+            span::<(), _>(expand(&line[start..end])).color(piece_color)
+        })
+        .collect();
+    rich_text(spans)
         .size(13)
         .font(style::MONO)
         .line_height(LineHeight::Absolute(LINE_HEIGHT.into()))
-        .color(color)
         .width(Length::Fill)
         .into()
 }
@@ -1093,7 +1169,12 @@ fn ends_moved_run(line: &Line, next: Option<&Line>) -> bool {
     line.is_moved() && next.is_none_or(|n| !n.is_moved() || n.kind != line.kind)
 }
 
-pub(super) fn unified<'a>(lines: &'a [Line], p: &'static Palette) -> Element<'a, Message> {
+pub(super) fn unified<'a>(
+    lines: &'a [Line],
+    lang: Option<&Language>,
+    p: &'static Palette,
+) -> Element<'a, Message> {
+    let pieces = highlight_lines(lines, lang);
     let mut col = column![];
     for (i, line) in lines.iter().enumerate() {
         let (background, color, number_color, mark) = line_look(line, p);
@@ -1112,7 +1193,7 @@ pub(super) fn unified<'a>(lines: &'a [Line], p: &'static Palette) -> Element<'a,
                 number(line.old, old_color),
                 number(line.new, new_color),
                 sign(mark, number_color),
-                code(line, color),
+                code(&line.text, &pieces[i], color, p),
             ])
             .width(Length::Fill)
             .style(style::line(background)),
@@ -1126,43 +1207,51 @@ pub(super) fn unified<'a>(lines: &'a [Line], p: &'static Palette) -> Element<'a,
 
 /// Old version on the left, new on the right; removed and added lines that
 /// follow each other are shown face to face.
-pub(super) fn side_by_side<'a>(lines: &'a [Line], p: &'static Palette) -> Element<'a, Message> {
-    let mut pairs: Vec<(Option<&Line>, Option<&Line>)> = Vec::new();
+pub(super) fn side_by_side<'a>(
+    lines: &'a [Line],
+    lang: Option<&Language>,
+    p: &'static Palette,
+) -> Element<'a, Message> {
+    let pieces = highlight_lines(lines, lang);
+    // Each side holds the index of its line in `lines`.
+    let mut pairs: Vec<(Option<usize>, Option<usize>)> = Vec::new();
     let mut i = 0;
     while i < lines.len() {
         if lines[i].kind == LineKind::Context {
-            pairs.push((Some(&lines[i]), Some(&lines[i])));
+            pairs.push((Some(i), Some(i)));
             i += 1;
             continue;
         }
-        let removed: Vec<&Line> = lines[i..]
+        let removed = lines[i..]
             .iter()
             .take_while(|l| l.kind == LineKind::Removed)
-            .collect();
-        i += removed.len();
-        let added: Vec<&Line> = lines[i..]
+            .count();
+        let added = lines[i + removed..]
             .iter()
             .take_while(|l| l.kind == LineKind::Added)
-            .collect();
-        i += added.len();
-        for k in 0..removed.len().max(added.len()) {
-            pairs.push((removed.get(k).copied(), added.get(k).copied()));
+            .count();
+        for k in 0..removed.max(added) {
+            pairs.push((
+                (k < removed).then_some(i + k),
+                (k < added).then_some(i + removed + k),
+            ));
         }
+        i += removed + added;
     }
 
-    let half = |line: Option<&Line>, old: bool| -> Element<'a, Message> {
-        match line {
+    let half = |index: Option<usize>, old: bool| -> Element<'a, Message> {
+        match index.map(|i| (&lines[i], &pieces[i])) {
             None => container(Space::new())
                 .width(Length::FillPortion(1))
                 .height(Length::Fill)
                 .style(style::line(p.page))
                 .into(),
-            Some(line) => {
+            Some((line, line_pieces)) => {
                 let (background, color, number_color, mark) = line_look(line, p);
                 container(row![
                     number(if old { line.old } else { line.new }, number_color),
                     sign(mark, number_color),
-                    code(line, color),
+                    code(&line.text, line_pieces, color, p),
                 ])
                 .width(Length::FillPortion(1))
                 .style(style::line(background))

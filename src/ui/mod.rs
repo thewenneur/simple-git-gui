@@ -2,3 +2,4 @@
 
 pub mod icons;
 pub mod style;
+pub mod syntax;

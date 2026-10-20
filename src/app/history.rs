@@ -784,7 +784,7 @@ impl App {
         let badge = if remote {
             badge.style(style::outlined_badge(tint))
         } else {
-            badge.style(style::badge(tint.strong, Color::WHITE))
+            badge.style(style::badge(tint.strong, style::text_on(tint.strong)))
         };
         tooltip(
             mouse_area(badge)
@@ -959,6 +959,7 @@ impl App {
                     .push(container(text(t!("history.no_text_change")).color(p.muted)).padding(14));
             }
             let mut budget = MAX_DIFF_LINES;
+            let lang = crate::ui::syntax::language_for(path);
             for hunk in &diff.hunks {
                 let (from, to) = hunk_range(hunk);
                 let mut title = text(t!("diff.lines", from = from, to = to)).size(12);
@@ -978,9 +979,9 @@ impl App {
                 );
                 let shown = hunk.lines.len().min(budget);
                 diff_col = diff_col.push(if self.side_by_side {
-                    side_by_side(&hunk.lines[..shown], p)
+                    side_by_side(&hunk.lines[..shown], lang, p)
                 } else {
-                    unified(&hunk.lines[..shown], p)
+                    unified(&hunk.lines[..shown], lang, p)
                 });
                 budget -= shown;
                 if budget == 0 {
@@ -1461,7 +1462,7 @@ impl RowGraph {
     fn new(row: &graph::Row, head: bool, p: &'static Palette) -> Self {
         let color = |owner: &Option<String>| match owner {
             Some(name) => style::branch_tint(p, name).strong,
-            None => p.branch_other.strong,
+            None => p.muted,
         };
         Self {
             segments: row
