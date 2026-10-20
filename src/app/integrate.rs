@@ -21,6 +21,8 @@ pub struct Prompt {
     pub other: String,
     /// For a rebase that moves only the commits after this one (`--onto`).
     pub after: Option<String>,
+    /// For a rebase of another branch than the current one.
+    pub branch: Option<String>,
     pub ignore_whitespace: bool,
 }
 
@@ -270,6 +272,7 @@ impl App {
             kind,
             other,
             after: None,
+            branch: None,
             ignore_whitespace: true,
         });
         Task::none()
@@ -284,7 +287,11 @@ impl App {
             return Task::none();
         };
         let root = repo.paths.root.clone();
-        let current = current.unwrap_or_else(|| "HEAD".to_string());
+        let current = prompt
+            .branch
+            .clone()
+            .or(current)
+            .unwrap_or_else(|| "HEAD".to_string());
         let label = match prompt.kind {
             Kind::Merge => t!("undo.merge", branch = prompt.other, into = current),
             Kind::Rebase => t!("undo.rebase", branch = current, onto = prompt.other),
@@ -296,6 +303,7 @@ impl App {
             prompt.kind,
             &prompt.other,
             prompt.after.as_deref(),
+            prompt.branch.as_deref(),
             prompt.ignore_whitespace,
         );
         self.busy = Some(t!("busy.integrating").into_owned());
@@ -763,7 +771,10 @@ impl App {
             return Space::new().into();
         };
         let (current, dirty) = self.current_branch_and_changes();
-        let current = current.unwrap_or_else(|| "HEAD".to_string());
+        let current = match (prompt.kind, &prompt.branch) {
+            (Kind::Rebase, Some(branch)) => branch.clone(),
+            _ => current.unwrap_or_else(|| "HEAD".to_string()),
+        };
         let other = prompt.other.as_str();
         let (title, intro, go) = match prompt.kind {
             Kind::Merge => (
@@ -782,6 +793,7 @@ impl App {
             prompt.kind,
             other,
             prompt.after.as_deref(),
+            prompt.branch.as_deref(),
             prompt.ignore_whitespace,
         );
         let mut col = column![
@@ -799,10 +811,23 @@ impl App {
                 .color(p.text_2),
             );
         }
-        let published = repo
-            .status
-            .as_ref()
-            .is_some_and(|s| s.branch.upstream.is_some());
+        if let (Kind::Rebase, Some(branch)) = (prompt.kind, &prompt.branch) {
+            col = col.push(
+                text(t!("drop.rebase_other_note", branch = branch))
+                    .size(13)
+                    .color(p.text_2),
+            );
+        }
+        let published = match &prompt.branch {
+            Some(branch) => repo
+                .branches
+                .iter()
+                .any(|b| b.remote && b.name.split_once('/').is_some_and(|(_, n)| n == branch)),
+            None => repo
+                .status
+                .as_ref()
+                .is_some_and(|s| s.branch.upstream.is_some()),
+        };
         if prompt.kind == Kind::Rebase && published {
             col = col.push(
                 container(text(t!("integrate.rebase_pushed", branch = current)).size(13))

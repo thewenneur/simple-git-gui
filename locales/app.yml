@@ -1314,6 +1314,9 @@ drop.squash_button:
 drop.rebase_after_note:
   en: "Only the commits after %{commit} are moved; the ones before stay where they are."
   fr: "Seuls les commits après %{commit} sont déplacés ; ceux d'avant restent où ils sont."
+drop.rebase_other_note:
+  en: "Git first goes onto %{branch}, and you stay on it afterwards."
+  fr: "Git passe d'abord sur %{branch}, et vous y restez ensuite."
 
 # Submodules, Git LFS locks and .gitignore templates
 nav.submodules:
