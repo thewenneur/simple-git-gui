@@ -224,6 +224,8 @@ pub enum Action {
     RemoteTest,
     /// Adding, removing, locking or pruning workspaces (worktrees).
     Workspace,
+    /// Saving files again with the current line-ending rules.
+    Renormalize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -266,6 +268,7 @@ pub enum Message {
     DiffLoaded(PathBuf, Box<changes::DiffView>, Vec<CommandRecord>),
     StageFile(String, bool),
     StageAll,
+    Renormalize,
     ApplyHunk(usize),
     SetIgnoreWhitespace(bool),
     SetShowMoves(bool),
@@ -665,6 +668,7 @@ impl App {
             Message::DiffLoaded(root, view, records) => self.diff_loaded(root, *view, records),
             Message::StageFile(path, stage) => self.stage_file(path, stage),
             Message::StageAll => self.stage_all(),
+            Message::Renormalize => self.renormalize(),
             Message::ApplyHunk(index) => self.apply_hunk(index),
             Message::SetIgnoreWhitespace(on) => {
                 self.diff_options.ignore_whitespace = on;
@@ -1051,6 +1055,9 @@ impl App {
                 }
                 Action::RemoteTest => {
                     self.notice = Some(t!("remotes.test_ok").into_owned());
+                }
+                Action::Renormalize => {
+                    self.notice = Some(t!("config.renormalized").into_owned());
                 }
                 Action::Fetch if fetched => {
                     self.notice = Some(if integrated {

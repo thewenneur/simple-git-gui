@@ -75,6 +75,16 @@ impl App {
         self.perform(Action::Config, None, Some(undoable), vec![command])
     }
 
+    /// Stages every tracked file saved again with the line-ending rules.
+    pub(super) fn renormalize(&mut self) -> Task<Message> {
+        let Some(repo) = &self.repo else {
+            return Task::none();
+        };
+        let command = crate::git::ops::renormalize(&repo.paths.root);
+        let undoable = Undoable::new(t!("undo.renormalize").into_owned(), Moves::Index);
+        self.perform(Action::Renormalize, None, Some(undoable), vec![command])
+    }
+
     pub(super) fn apply_config_draft(&mut self, key: &'static str) -> Task<Message> {
         let Some(draft) = self.config_drafts.get(key).cloned() else {
             return Task::none();
@@ -142,6 +152,11 @@ impl App {
                     .push(hline(style::separator))
                     .push(self.setting_row(setting, values, p));
             }
+            if *section == "files" {
+                card = card
+                    .push(hline(style::separator))
+                    .push(self.renormalize_row(repo, p));
+            }
             page = page.push(container(card).width(Length::Fill).style(style::card));
         }
 
@@ -177,6 +192,43 @@ impl App {
             .style(style::scroll)
             .height(Length::Fill)
             .into()
+    }
+
+    /// "Fix line endings": stages the tracked files whose stored line endings
+    /// differ from the current rules.
+    fn renormalize_row<'a>(
+        &'a self,
+        repo: &'a OpenRepo,
+        p: &'static Palette,
+    ) -> Element<'a, Message> {
+        let command = crate::git::ops::renormalize(&repo.paths.root).display();
+        container(
+            row![
+                column![
+                    text(t!("config.renormalize")).font(sans(Weight::Semibold)),
+                    text(t!("config.renormalize_hint")).size(13).color(p.text_2),
+                ]
+                .spacing(2)
+                .width(Length::FillPortion(14)),
+                container(
+                    button(centered(text(t!("config.renormalize_button")).size(13)))
+                        .padding([0, 12])
+                        .height(34)
+                        .on_press_maybe(self.idle().then_some(Message::Renormalize))
+                        .style(style::secondary),
+                )
+                .width(Length::FillPortion(10)),
+                text(command)
+                    .font(style::MONO)
+                    .size(12)
+                    .color(p.accent.text)
+                    .width(Length::FillPortion(9)),
+            ]
+            .spacing(20)
+            .align_y(Alignment::Center),
+        )
+        .padding([14, 16])
+        .into()
     }
 
     fn setting_row<'a>(

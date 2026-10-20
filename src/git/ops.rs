@@ -44,6 +44,12 @@ pub fn stage_all(root: &Path) -> GitCommand {
     GitCommand::new(["add", "-A"]).in_dir(root)
 }
 
+/// Saves every tracked file again with the current line-ending rules
+/// (`core.autocrlf`, `.gitattributes`): the fixed files are staged.
+pub fn renormalize(root: &Path) -> GitCommand {
+    GitCommand::new(["add", "--renormalize", "--", "."]).in_dir(root)
+}
+
 /// Takes files out of the next commit, keeping their changes on disk.
 pub fn unstage(root: &Path, paths: &[String], has_head: bool) -> GitCommand {
     let base: &[&str] = if has_head {
@@ -414,5 +420,26 @@ mod tests {
             "Author identity unknown\n\n*** Please tell me who you are."
         ));
         assert!(!is_missing_identity("nothing to commit"));
+    }
+
+    /// A file stored with Windows line endings is staged again with Linux
+    /// ones once `.gitattributes` asks for normalized text.
+    #[tokio::test]
+    async fn renormalize_stages_files_with_other_line_endings() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path();
+        new_repo(root).await;
+        git(root, &["config", "core.autocrlf", "false"]).await;
+        std::fs::write(root.join("a.vhd"), "one\r\ntwo\r\n").unwrap();
+        std::fs::write(root.join("b.vhd"), "one\ntwo\n").unwrap();
+        git(root, &["add", "."]).await;
+        git(root, &["commit", "-q", "-m", "init"]).await;
+        std::fs::write(root.join(".gitattributes"), "* text=auto\n").unwrap();
+
+        assert!(run(renormalize(root)).await.success());
+        let staged = git(root, &["diff", "--cached", "--name-only"]).await.stdout;
+        assert_eq!(staged.lines().collect::<Vec<_>>(), ["a.vhd"]);
+        let stored = git(root, &["show", ":a.vhd"]).await.stdout;
+        assert_eq!(stored, "one\ntwo\n");
     }
 }

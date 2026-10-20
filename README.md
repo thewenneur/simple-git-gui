@@ -50,8 +50,11 @@ cargo run --release -- ~/project    # opens this repository directly
   next send.
 - Right-click a file to ignore it (the file, its extension or its folder), shared in
   `.gitignore` or only for you in `.git/info/exclude`.
-- An explained **Git configuration** screen (identity, sync, conflicts, line endings),
-  per repository or for every repository, showing the exact `git config` command.
+- An explained **Git configuration** screen (identity, sync, where server passwords are
+  kept, conflicts, line endings), per repository or for every repository, showing the
+  exact `git config` command. One click fixes the line endings of files already saved
+  in a repository where Windows and Linux endings got mixed (`git add --renormalize`,
+  undoable with Ctrl+Z).
 - **Servers (remotes)**: add, rename, change the address (and a separate send address),
   remove and test a server, each with its command shown and undoable with Ctrl+Z.
 - **History and branches**: a branch graph of every branch, the details of a commit
