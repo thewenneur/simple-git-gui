@@ -16,6 +16,7 @@ use std::path::PathBuf;
 use app::App;
 
 fn main() -> iced::Result {
+    choose_renderer();
     let initial_dir = std::env::args_os().nth(1).map(PathBuf::from);
     iced::application(
         move || App::new(initial_dir.clone()),
@@ -33,4 +34,17 @@ fn main() -> iced::Result {
     })
     .window_size((1280.0, 800.0))
     .run()
+}
+
+/// Draws with the CPU unless `SIMPLE_GIT_GPU=1`: the GPU renderer loads the
+/// graphics driver, which costs far more memory than this flat UI needs.
+/// `ICED_BACKEND`, when set, still wins.
+fn choose_renderer() {
+    if std::env::var_os("ICED_BACKEND").is_some() {
+        return;
+    }
+    let gpu = std::env::var("SIMPLE_GIT_GPU").is_ok_and(|v| v == "1");
+    let backend = if gpu { "wgpu,tiny-skia" } else { "tiny-skia" };
+    // SAFETY: called first thing in `main`, before any other thread exists.
+    unsafe { std::env::set_var("ICED_BACKEND", backend) };
 }

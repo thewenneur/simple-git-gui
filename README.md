@@ -45,7 +45,8 @@ cargo run --release -- ~/project    # opens this repository directly
   by default. In advanced mode: a switch to show them, full outputs and a console to
   type your own git commands.
 - Light on memory (about 25 MB): the interface is drawn by the CPU (iced's tiny-skia
-  renderer), so no GPU driver is loaded.
+  renderer), so no GPU driver is loaded. Start with `SIMPLE_GIT_GPU=1` to draw with
+  the GPU instead (wgpu, much more memory).
 - Git can never freeze the interface: every command runs in the background, without a
   terminal or an editor, and is stopped after a maximum delay.
 

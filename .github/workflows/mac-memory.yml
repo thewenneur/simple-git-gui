@@ -17,15 +17,12 @@ jobs:
         with:
           save-if: false
       - run: cargo build --release && cp target/release/simple-git-gui /tmp/current
-      - run: |
-          git worktree add /tmp/old 892cc86
-          cd /tmp/old && cargo build --release && cp target/release/simple-git-gui /tmp/old-wgpu
       - name: Measure
         run: |
           git clone -q . /tmp/repo
           measure() {
-            label=$1; shift
-            "$@" /tmp/repo & pid=$!
+            label=$1
+            "$2" /tmp/repo & pid=$!
             sleep 20
             echo "=== $label after 20s"
             footprint $pid | head -40 || true
@@ -37,8 +34,7 @@ jobs:
             kill $pid; sleep 2
           }
           measure current /tmp/current
-          measure old-wgpu /tmp/old-wgpu
-          ICED_BACKEND=tiny-skia measure old-tiny-skia /tmp/old-wgpu
+          SIMPLE_GIT_GPU=1 measure gpu /tmp/current
       - uses: actions/upload-artifact@v4
         if: always()
         with:
