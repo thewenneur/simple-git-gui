@@ -19,6 +19,8 @@ pub enum Icon {
     Undo,
     Redo,
     Settings,
+    Tag,
+    Warning,
 }
 
 impl Icon {
@@ -43,6 +45,8 @@ impl Icon {
             }
             Icon::Undo => r#"<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>"#,
             Icon::Redo => r#"<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/>"#,
+            Icon::Tag => r#"<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/>"#,
+            Icon::Warning => r#"<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>"#,
             Icon::BranchSmall => {
                 r#"<circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M6 8.5v7"/>"#
             }

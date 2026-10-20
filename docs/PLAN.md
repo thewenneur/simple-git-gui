@@ -42,6 +42,9 @@ repository, file status, history.
   - two commits selected → comparison;
   - safe branch deletion; detached HEAD banner with "create a branch here".
 
+Status: done. Pushing the current branch by drag and drop opens the usual send wizard,
+which gets colleagues' work first.
+
 ## 4. Submodules and trade-specific needs
 Submodules (add, update, sync, status), Git LFS and file locking for design binaries,
 `.gitignore` templates, portable Windows/macOS/Linux executables via

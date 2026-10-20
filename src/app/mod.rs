@@ -6,6 +6,9 @@
 
 mod changes;
 mod config;
+mod dragdrop;
+mod history;
+mod integrate;
 mod sync;
 mod undo;
 
@@ -14,13 +17,17 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use iced::font::Weight;
+use iced::keyboard::Modifiers;
 use iced::theme::Mode;
 use iced::widget::{
-    Space, button, checkbox, column, container, opaque, row, scrollable, space, stack, text,
-    text_editor, text_input, tooltip,
+    Space, button, checkbox, column, container, mouse_area, opaque, row, scrollable, space, stack,
+    text, text_editor, text_input, tooltip,
 };
-use iced::{Alignment, Color, Element, Length, Padding, Subscription, Task, Theme};
+use iced::{
+    Alignment, Color, Element, Length, Padding, Point, Size, Subscription, Task, Theme, mouse,
+};
 
+use crate::git::branches::{self, Stash, Target};
 use crate::git::diff::DiffOptions;
 use crate::git::ignore::IgnoreTarget;
 use crate::git::ops;
@@ -70,6 +77,16 @@ pub struct App {
     config_scope: crate::git::config::Scope,
     /// Text settings being typed, applied on Enter.
     config_drafts: HashMap<&'static str, String>,
+    /// Keys held down (Ctrl+click compares two commits).
+    modifiers: Modifiers,
+    /// Last position of the mouse in the window, where menus open.
+    pointer: Point,
+    window: Size,
+    context_menu: Option<history::ContextMenu>,
+    history_dialog: Option<history::Dialog>,
+    /// A branch whose deletion is running, to offer forcing it if refused.
+    pending_delete: Option<String>,
+    integration_prompt: Option<integrate::Prompt>,
 }
 
 struct OpenRepo {
@@ -89,6 +106,14 @@ struct OpenRepo {
     ignore_menu: Option<changes::IgnoreMenu>,
     undo: undo::UndoStacks,
     config: Option<crate::git::config::Values>,
+    history: history::HistoryState,
+    stashes: Vec<Stash>,
+    /// The branch checked out before, to go back from a detached HEAD.
+    previous_branch: Option<String>,
+    session: Option<integrate::Session>,
+    resolver: Option<integrate::Resolver>,
+    resolver_loading: bool,
+    after_check: Option<integrate::AfterCheck>,
     /// A background refresh is running; avoids piling them up.
     refreshing: bool,
     /// Increased at each refresh; older results are dropped.
@@ -113,6 +138,13 @@ impl OpenRepo {
             ignore_menu: None,
             undo: undo::UndoStacks::default(),
             config: None,
+            history: history::HistoryState::default(),
+            stashes: Vec::new(),
+            previous_branch: None,
+            session: None,
+            resolver: None,
+            resolver_loading: false,
+            after_check: None,
             refreshing: false,
             generation: 0,
         }
@@ -128,6 +160,8 @@ pub struct Refresh {
     remotes: CommandRecord,
     numstat_staged: CommandRecord,
     numstat_unstaged: CommandRecord,
+    stashes: CommandRecord,
+    previous_branch: CommandRecord,
 }
 
 /// User actions made of git commands, for the follow-up once they ran.
@@ -139,6 +173,15 @@ pub enum Action {
     Abort,
     Fetch,
     Config,
+    /// Branch and commit actions of the history.
+    History,
+    DeleteBranch,
+    /// Settling a conflict.
+    Resolve,
+    /// Sending a branch that is not the current one.
+    Push,
+    /// Swapping, squashing or rewording commits not sent yet.
+    Rewrite,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -214,6 +257,60 @@ pub enum Message {
     ConfigDraft(&'static str, String),
     ApplyConfig(&'static str),
     SetConfig(&'static str, Option<String>),
+    Modifiers(Modifiers),
+    Pointer(Point),
+    WindowResized(Size),
+    Escape,
+    HistorySearch(String),
+    Grab(dragdrop::Grip),
+    Hover(dragdrop::Grip),
+    Unhover(dragdrop::Grip),
+    /// The pointer left a branch label of the history, still on its row.
+    LeaveBadge(String, String),
+    Release,
+    DialogSquash(bool),
+    CommitDetails(PathBuf, Box<history::Details>, Vec<CommandRecord>),
+    SelectCommitFile(String),
+    CommitFileDiff(
+        PathBuf,
+        String,
+        Box<crate::git::diff::FileDiff>,
+        String,
+        CommandRecord,
+    ),
+    CloseDetails,
+    OpenMenu(history::MenuTarget),
+    CloseMenu,
+    MenuAction(history::MenuAction),
+    SwitchTo(Target),
+    DialogName(String),
+    DialogSwitch(bool),
+    DialogEdit(text_editor::Action),
+    ConfirmDialog,
+    CloseDialog,
+    RestoreFile(String, String),
+    SetPromptWhitespace(bool),
+    StartIntegration,
+    ClosePrompt,
+    IntegrationStarted(Box<integrate::Session>, Vec<CommandRecord>),
+    IntegrationFinished(
+        Box<crate::git::undo::Entry>,
+        Option<Box<integrate::AfterCheck>>,
+        Vec<CommandRecord>,
+    ),
+    ResolverLoaded(PathBuf, Box<integrate::Resolver>, Vec<CommandRecord>),
+    SelectResolverFile(String),
+    Choose(String, usize, Option<crate::git::conflict::Choice>),
+    StartConflictEdit(String, usize),
+    EditConflict(String, text_editor::Action),
+    ApplyConflictEdit(String),
+    ToggleBase(String),
+    SaveResolved(String),
+    KeepWhole(String, bool),
+    RemoveDuplicate(String, usize),
+    DismissAfterCheck,
+    Proceed,
+    Proceeded(Vec<CommandRecord>, bool),
 }
 
 impl App {
@@ -224,6 +321,7 @@ impl App {
         i18n::set(lang);
         let forced = std::env::var("SIMPLE_GIT_THEME").ok();
         let mut app = Self {
+            window: Size::new(1280.0, 800.0),
             lang: Some(lang),
             dark: forced.as_deref() == Some("dark"),
             theme_forced: matches!(forced.as_deref(), Some("dark" | "light")),
@@ -310,6 +408,8 @@ impl App {
                     remotes,
                     numstat_staged,
                     numstat_unstaged,
+                    stashes,
+                    previous_branch,
                 } = *refresh;
                 let Some(repo) = self
                     .repo
@@ -334,6 +434,11 @@ impl App {
                     Vec::new()
                 };
                 repo.branches = repo::parse_branches(&branches.stdout);
+                repo.stashes = branches::parse_stash_list(&stashes.stdout);
+                repo.previous_branch = previous_branch
+                    .success()
+                    .then(|| previous_branch.stdout.trim().to_string())
+                    .filter(|b| !b.is_empty() && b != "HEAD");
                 for record in [
                     status,
                     log,
@@ -341,10 +446,13 @@ impl App {
                     remotes,
                     numstat_staged,
                     numstat_unstaged,
+                    stashes,
+                    previous_branch,
                 ] {
                     self.log(record);
                 }
-                self.sync_selection()
+                self.history_refreshed();
+                Task::batch([self.sync_selection(), self.sync_resolver()])
             }
             Message::SelectSection(section) => {
                 if let Some(repo) = &mut self.repo {
@@ -561,6 +669,176 @@ impl App {
                 self.busy = None;
                 Task::none()
             }
+            Message::Modifiers(modifiers) => {
+                self.modifiers = modifiers;
+                Task::none()
+            }
+            Message::Pointer(point) => {
+                self.pointer = point;
+                self.drag_moved(point);
+                Task::none()
+            }
+            Message::Grab(grip) => self.grab(grip),
+            Message::Hover(grip) => {
+                // Entering a row also enters the label under the pointer,
+                // which comes first: keep the label.
+                let hovered = self.repo.as_ref().and_then(|r| r.history.hover.as_ref());
+                let on_label = match (&grip, hovered) {
+                    (dragdrop::Grip::Commit(hash), Some(dragdrop::Grip::Branch(name))) => self
+                        .repo
+                        .as_ref()
+                        .and_then(|r| r.commits.iter().find(|c| c.hash == *hash))
+                        .is_some_and(|c| c.refs.contains(name)),
+                    _ => false,
+                };
+                if !on_label {
+                    self.hover(Some(grip));
+                }
+                Task::none()
+            }
+            Message::LeaveBadge(name, hash) => {
+                if self.repo.as_ref().and_then(|r| r.history.hover.as_ref())
+                    == Some(&dragdrop::Grip::Branch(name))
+                {
+                    self.hover(Some(dragdrop::Grip::Commit(hash)));
+                }
+                Task::none()
+            }
+            Message::Unhover(grip) => {
+                if self.repo.as_ref().and_then(|r| r.history.hover.as_ref()) == Some(&grip) {
+                    self.hover(None);
+                }
+                Task::none()
+            }
+            Message::Release => self.release(),
+            Message::DialogSquash(on) => {
+                if let Some(history::Dialog::Drop { squash, .. }) = &mut self.history_dialog {
+                    *squash = on;
+                }
+                Task::none()
+            }
+            Message::WindowResized(size) => {
+                self.window = size;
+                Task::none()
+            }
+            Message::Escape => {
+                self.context_menu = None;
+                if let Some(repo) = &mut self.repo {
+                    repo.history.drag = None;
+                }
+                self.history_dialog = None;
+                self.integration_prompt = None;
+                if let Some(repo) = &mut self.repo {
+                    repo.ignore_menu = None;
+                }
+                Task::none()
+            }
+            Message::HistorySearch(query) => {
+                if let Some(repo) = &mut self.repo {
+                    repo.history.search = query;
+                }
+                Task::none()
+            }
+            Message::CommitDetails(root, details, records) => {
+                self.details_loaded(root, *details, records)
+            }
+            Message::SelectCommitFile(path) => self.select_commit_file(path),
+            Message::CommitFileDiff(root, path, diff, command, record) => {
+                self.commit_file_diff(root, path, *diff, command, record)
+            }
+            Message::CloseDetails => {
+                if let Some(repo) = &mut self.repo {
+                    repo.history.details = None;
+                    repo.history.selected = None;
+                    repo.history.compare = None;
+                }
+                Task::none()
+            }
+            Message::OpenMenu(target) => self.open_menu(target),
+            Message::CloseMenu => {
+                self.context_menu = None;
+                Task::none()
+            }
+            Message::MenuAction(action) => self.menu_action(action),
+            Message::SwitchTo(target) => self.switch_to(target),
+            Message::DialogName(value) => {
+                match &mut self.history_dialog {
+                    Some(history::Dialog::NewBranch { name, .. })
+                    | Some(history::Dialog::NewTag { name, .. }) => *name = value,
+                    _ => {}
+                }
+                Task::none()
+            }
+            Message::DialogSwitch(on) => {
+                if let Some(history::Dialog::NewBranch { switch, .. }) = &mut self.history_dialog {
+                    *switch = on;
+                }
+                Task::none()
+            }
+            Message::DialogEdit(action) => {
+                if let Some(history::Dialog::Reword { content, .. }) = &mut self.history_dialog {
+                    content.perform(action);
+                }
+                Task::none()
+            }
+            Message::ConfirmDialog => self.confirm_dialog(),
+            Message::CloseDialog => {
+                self.history_dialog = None;
+                Task::none()
+            }
+            Message::RestoreFile(hash, path) => self.restore_file(hash, path),
+            Message::SetPromptWhitespace(on) => {
+                if let Some(prompt) = &mut self.integration_prompt {
+                    prompt.ignore_whitespace = on;
+                }
+                Task::none()
+            }
+            Message::StartIntegration => self.start_integration(),
+            Message::ClosePrompt => {
+                self.integration_prompt = None;
+                Task::none()
+            }
+            Message::IntegrationStarted(session, records) => {
+                self.integration_started(*session, records)
+            }
+            Message::IntegrationFinished(entry, check, records) => {
+                self.integration_finished(*entry, check.map(|c| *c), records)
+            }
+            Message::ResolverLoaded(root, resolver, records) => {
+                self.resolver_loaded(root, *resolver, records)
+            }
+            Message::SelectResolverFile(path) => {
+                if let Some(resolver) = self.repo.as_mut().and_then(|r| r.resolver.as_mut()) {
+                    resolver.selected = Some(path);
+                }
+                Task::none()
+            }
+            Message::Choose(path, index, choice) => self.choose(path, index, choice),
+            Message::StartConflictEdit(path, index) => self.start_editing(path, index),
+            Message::EditConflict(path, action) => self.edit_conflict(path, action),
+            Message::ApplyConflictEdit(path) => self.apply_edit(path),
+            Message::ToggleBase(path) => {
+                if let Some(file) = self
+                    .repo
+                    .as_mut()
+                    .and_then(|r| r.resolver.as_mut())
+                    .and_then(|r| r.files.iter_mut().find(|f| f.path == path))
+                {
+                    file.show_base = !file.show_base;
+                }
+                Task::none()
+            }
+            Message::SaveResolved(path) => self.save_resolved(path),
+            Message::KeepWhole(path, incoming) => self.keep_whole(path, incoming),
+            Message::RemoveDuplicate(path, index) => self.remove_duplicate(path, index),
+            Message::DismissAfterCheck => {
+                if let Some(repo) = &mut self.repo {
+                    repo.after_check = None;
+                }
+                Task::none()
+            }
+            Message::Proceed => self.proceed(),
+            Message::Proceeded(records, still) => self.proceeded(records, still),
         }
     }
 
@@ -603,6 +881,13 @@ impl App {
                 .first()
                 .is_some_and(|a| a == "rebase" || a == "merge")
         });
+        // `git push origin local:name`: the branch sent.
+        let pushed = records
+            .last()
+            .filter(|r| r.command.args.first().is_some_and(|a| a == "push"))
+            .and_then(|r| r.command.args.last())
+            .and_then(|a| a.split_once(':'))
+            .map(|(local, _)| local.to_string());
         for record in records {
             self.log(record);
         }
@@ -611,6 +896,29 @@ impl App {
                 if action == Action::Commit && ops::is_missing_identity(&stderr) =>
             {
                 self.error = Some(t!("error.identity").into_owned());
+            }
+            Some((_, _, stderr))
+                if action == Action::DeleteBranch && branches::is_not_merged(&stderr) =>
+            {
+                self.delete_refused();
+            }
+            Some((Some(verb), _, _))
+                if (verb == "cherry-pick"
+                    || verb == "revert"
+                    || (verb == "rebase" && action == Action::Rewrite))
+                    && repo::operation_in_progress(
+                        &self
+                            .repo
+                            .as_ref()
+                            .map(|r| r.paths.git_dir.clone())
+                            .unwrap_or_default(),
+                    )
+                    .is_some() =>
+            {
+                self.notice = Some(t!("integrate.conflict_started").into_owned());
+                if let Some(repo) = &mut self.repo {
+                    repo.section = Section::Changes;
+                }
             }
             Some((Some(verb), detail, _)) if verb == "rebase" || verb == "merge" => {
                 self.error = Some(t!("error.integrate_conflict", detail = detail).into_owned());
@@ -623,6 +931,14 @@ impl App {
                 Action::Commit => {
                     if let Some(repo) = &mut self.repo {
                         repo.commit_message = text_editor::Content::new();
+                    }
+                }
+                Action::Push => {
+                    let sent = pushed.unwrap_or_default();
+                    self.notice = Some(t!("drop.pushed", branch = sent).into_owned());
+                    if let Some(repo) = &mut self.repo {
+                        repo.undo
+                            .clear_after_push(t!("undo.send", branch = sent).into_owned());
                     }
                 }
                 Action::Fetch if fetched => {
@@ -682,24 +998,46 @@ impl App {
         repo.generation += 1;
         let generation = repo.generation;
         let root = repo.paths.root.clone();
-        let [status, log, branches, remotes, staged, unstaged] = [
+        let [
+            status,
+            log,
+            branches,
+            remotes,
+            staged,
+            unstaged,
+            stashes,
+            previous,
+        ] = [
             repo::status_command(&root),
             repo::log_command(&root, LOG_LIMIT),
             repo::branches_command(&root),
             ops::remotes(&root),
             ops::numstat(&root, true),
             ops::numstat(&root, false),
+            branches::stash_list_command(&root),
+            branches::previous_branch(&root),
         ]
         .map(|c| if background { c.background() } else { c });
         Task::perform(
             async move {
-                let (status, log, branches, remotes, numstat_staged, numstat_unstaged) = tokio::join!(
+                let (
+                    status,
+                    log,
+                    branches,
+                    remotes,
+                    numstat_staged,
+                    numstat_unstaged,
+                    stashes,
+                    previous_branch,
+                ) = tokio::join!(
                     run(status),
                     run(log),
                     run(branches),
                     run(remotes),
                     run(staged),
-                    run(unstaged)
+                    run(unstaged),
+                    run(stashes),
+                    run(previous)
                 );
                 Message::Refreshed(
                     root,
@@ -711,6 +1049,8 @@ impl App {
                         remotes,
                         numstat_staged,
                         numstat_unstaged,
+                        stashes,
+                        previous_branch,
                     }),
                 )
             },
@@ -797,25 +1137,37 @@ impl App {
                 .into(),
         };
 
-        let page = container(column![
-            self.top_bar(p),
-            hline(style::strong_separator),
-            body
-        ])
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .style(style::page);
+        let page = mouse_area(
+            container(column![
+                self.top_bar(p),
+                hline(style::strong_separator),
+                body
+            ])
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .style(style::page),
+        )
+        .on_move(Message::Pointer)
+        .on_release(Message::Release)
+        .interaction(if self.dragging().is_some() {
+            mouse::Interaction::Grabbing
+        } else {
+            mouse::Interaction::None
+        });
 
-        let dialog = match (
-            &self.send,
-            self.repo.as_ref().and_then(|r| r.ignore_menu.as_ref()),
-        ) {
-            (Some(wizard), _) => Some(self.send_dialog(wizard, p)),
-            (None, Some(menu)) => Some(self.ignore_dialog(menu, p)),
-            (None, None) => None,
+        let dialog = if let Some(wizard) = &self.send {
+            Some(self.send_dialog(wizard, p))
+        } else if let Some(menu) = self.repo.as_ref().and_then(|r| r.ignore_menu.as_ref()) {
+            Some(self.ignore_dialog(menu, p))
+        } else if let Some(dialog) = &self.history_dialog {
+            Some(self.history_dialog_view(dialog, p))
+        } else {
+            self.integration_prompt
+                .as_ref()
+                .map(|prompt| self.integration_prompt_view(prompt, p))
         };
-        match dialog {
-            Some(dialog) => stack![
+        if let Some(dialog) = dialog {
+            return stack![
                 page,
                 opaque(
                     container(dialog)
@@ -824,9 +1176,27 @@ impl App {
                         .style(style::backdrop)
                 )
             ]
-            .into(),
-            None => page.into(),
+            .into();
         }
+        if let Some(menu) = &self.context_menu {
+            return stack![
+                page,
+                opaque(
+                    mouse_area(
+                        container(self.context_menu_view(menu, p))
+                            .width(Length::Fill)
+                            .height(Length::Fill)
+                    )
+                    .on_press(Message::CloseMenu)
+                    .on_right_press(Message::CloseMenu)
+                ),
+            ]
+            .into();
+        }
+        if let Some(overlay) = self.drag_overlay(p) {
+            return stack![page, overlay].into();
+        }
+        page.into()
     }
 
     fn top_bar(&self, p: &'static Palette) -> Element<'_, Message> {
@@ -870,7 +1240,13 @@ impl App {
                 tooltip::Position::Bottom,
             ));
             if let Some(status) = &repo.status {
-                bar = bar.push(branch_pill(status, p));
+                // During a rebase HEAD is detached: name the branch being rebased.
+                let rebasing = repo
+                    .resolver
+                    .as_ref()
+                    .filter(|_| repo.operation == Some(Operation::Rebase))
+                    .map(|r| r.sides.incoming.as_str());
+                bar = bar.push(branch_pill(status, rebasing, p));
             }
         }
 
@@ -1002,7 +1378,22 @@ impl App {
                 .push(Space::new().height(16))
                 .push(caption(t!("sidebar.my_branches").into_owned(), p));
             for branch in local {
-                nav = nav.push(branch_row(branch, p));
+                let set_aside = repo
+                    .stashes
+                    .iter()
+                    .filter(|s| s.auto_branch() == Some(branch.name.as_str()))
+                    .count();
+                let grip = dragdrop::Grip::Branch(branch.name.clone());
+                nav = nav.push(
+                    mouse_area(branch_row(branch, set_aside, p))
+                        .on_press(Message::Grab(grip.clone()))
+                        .on_enter(Message::Hover(grip.clone()))
+                        .on_exit(Message::Unhover(grip))
+                        .on_double_click(Message::SwitchTo(Target::Branch(branch.name.clone())))
+                        .on_right_press(Message::OpenMenu(history::MenuTarget::Branch(
+                            branch.name.clone(),
+                        ))),
+                );
             }
         }
         if !remote.is_empty() {
@@ -1011,10 +1402,21 @@ impl App {
                 .push(caption(t!("sidebar.remote").into_owned(), p));
             for branch in remote {
                 nav = nav.push(
-                    container(text(branch.name.clone()).size(13).color(p.text_2))
-                        .padding([0, 12])
-                        .height(28)
-                        .align_y(Alignment::Center),
+                    mouse_area(
+                        container(text(branch.name.clone()).size(13).color(p.text_2))
+                            .padding([0, 12])
+                            .height(28)
+                            .width(Length::Fill)
+                            .align_y(Alignment::Center),
+                    )
+                    .on_press(Message::Grab(dragdrop::Grip::Branch(branch.name.clone())))
+                    .on_enter(Message::Hover(dragdrop::Grip::Branch(branch.name.clone())))
+                    .on_exit(Message::Unhover(dragdrop::Grip::Branch(
+                        branch.name.clone(),
+                    )))
+                    .on_right_press(Message::OpenMenu(
+                        history::MenuTarget::Branch(branch.name.clone()),
+                    )),
                 );
             }
         }
@@ -1114,7 +1516,7 @@ impl App {
 
     fn section_view<'a>(&'a self, repo: &'a OpenRepo, p: &'static Palette) -> Element<'a, Message> {
         let mut view = column![].spacing(12).height(Length::Fill);
-        if let Some(op) = repo.operation {
+        if let Some(op) = repo.operation.filter(|_| repo.section != Section::Changes) {
             view = view.push(
                 container(
                     row![
@@ -1135,70 +1537,84 @@ impl App {
                 .style(style::banner_warning),
             );
         }
-        let section = match repo.section {
-            Section::Changes => match &repo.status {
+        if let Some(status) = repo.status.as_ref().filter(|s| {
+            s.branch.head.is_none() && s.branch.oid.is_some() && repo.operation.is_none()
+        }) {
+            view = view.push(self.detached_banner(repo, status, p));
+        }
+        if let Some(check) = &repo.after_check {
+            view = view.push(self.after_check_view(check, p));
+        }
+        let section = match (repo.section, repo.operation) {
+            (Section::Changes, Some(op)) => self.integration_view(repo, op, p),
+            (Section::Changes, None) => match &repo.status {
                 Some(status) => self.changes_view(repo, status, p),
                 None => text(t!("repo.reading_status")).color(p.muted).into(),
             },
-            Section::History => self.history_view(&repo.commits, p),
-            Section::Config => self.config_view(repo, p),
+            (Section::History, _) => self.history_view(repo, p),
+            (Section::Config, _) => self.config_view(repo, p),
         };
         view.push(section).into()
     }
 
-    fn history_view<'a>(
+    /// Shown when HEAD is on a commit, outside any branch.
+    fn detached_banner<'a>(
         &'a self,
-        commits: &'a [Commit],
+        repo: &'a OpenRepo,
+        status: &'a Status,
         p: &'static Palette,
     ) -> Element<'a, Message> {
-        let header = container(
-            text(t!("history.title"))
-                .size(15)
-                .font(sans(Weight::Semibold)),
-        )
-        .padding([12, 14]);
-
-        let mut list = column![];
-        if commits.is_empty() {
-            list = list.push(container(text(t!("history.none")).color(p.muted)).padding([16, 14]));
+        let oid = status.branch.oid.clone().unwrap_or_default();
+        let mut buttons = row![
+            button(centered(
+                text(t!("detached.create_branch"))
+                    .font(sans(Weight::Semibold))
+                    .color(Color::WHITE)
+            ))
+            .padding([0, 14])
+            .height(36)
+            .on_press_maybe(
+                self.idle()
+                    .then(|| Message::MenuAction(history::MenuAction::NewBranch(oid.clone())))
+            )
+            .style(style::warning_button),
+        ]
+        .spacing(10);
+        let mut commands = String::from("$ git switch -c <name>");
+        if let Some(previous) = &repo.previous_branch {
+            buttons = buttons.push(
+                button(centered(text(t!("detached.go_back", branch = previous))))
+                    .padding([0, 14])
+                    .height(36)
+                    .on_press_maybe(
+                        self.idle()
+                            .then(|| Message::SwitchTo(Target::Branch(previous.clone()))),
+                    )
+                    .style(style::secondary),
+            );
+            commands.push_str(&format!("   ·   $ git switch {previous}"));
         }
-        for commit in commits {
-            let mut line = row![
-                text(commit.short.clone())
-                    .size(12)
-                    .font(style::MONO)
-                    .color(p.muted)
-                    .width(70)
+        container(
+            column![
+                row![
+                    icon(Icon::Warning, 20.0, p.warning.strong),
+                    column![
+                        text(t!("detached.title")).font(sans(Weight::Semibold)),
+                        text(t!("detached.text")).size(13),
+                    ]
+                    .spacing(2)
+                    .width(Length::Fill),
+                    buttons,
+                ]
+                .spacing(12)
+                .align_y(Alignment::Center),
+                text(commands).size(12).font(style::MONO),
             ]
-            .spacing(8)
-            .align_y(Alignment::Center);
-            for r in &commit.refs {
-                let tint = style::branch_tint(p, r.strip_prefix("tag: ").unwrap_or(r));
-                line = line.push(
-                    container(text(r.clone()).size(11).font(sans(Weight::Semibold)))
-                        .padding([1, 7])
-                        .style(style::badge(tint.soft, tint.text)),
-                );
-            }
-            line = line
-                .push(text(commit.subject.clone()).size(13).width(Length::Fill))
-                .push(text(commit.author.clone()).size(12).color(p.text_2))
-                .push(
-                    text(commit.date.clone())
-                        .size(12)
-                        .font(style::MONO)
-                        .color(p.muted),
-                );
-            list = list.push(container(line).padding([7, 14]));
-        }
-
-        container(column![
-            header,
-            hline(style::separator),
-            scrollable(list).style(style::scroll).height(Length::Fill),
-        ])
-        .height(Length::Fill)
-        .style(style::card)
+            .spacing(6),
+        )
+        .padding([10, 14])
+        .width(Length::Fill)
+        .style(style::banner_warning)
         .into()
     }
 
@@ -1428,7 +1844,11 @@ fn nav_item<'a>(
         .into()
 }
 
-fn branch_row<'a>(branch: &'a Branch, p: &'static Palette) -> Element<'a, Message> {
+fn branch_row<'a>(
+    branch: &'a Branch,
+    set_aside: usize,
+    p: &'static Palette,
+) -> Element<'a, Message> {
     let tint = style::branch_tint(p, &branch.name);
     let mut line = row![
         container(Space::new())
@@ -1449,6 +1869,12 @@ fn branch_row<'a>(branch: &'a Branch, p: &'static Palette) -> Element<'a, Messag
     .align_y(Alignment::Center);
     if branch.current {
         line = line.push(text(t!("sidebar.here")).size(12).color(tint.text));
+    } else if set_aside > 0 {
+        line = line.push(
+            text(t!("sidebar.set_aside", count = set_aside))
+                .size(11)
+                .color(p.muted),
+        );
     }
     let row = container(line)
         .padding([0, 12])
@@ -1461,13 +1887,19 @@ fn branch_row<'a>(branch: &'a Branch, p: &'static Palette) -> Element<'a, Messag
     }
 }
 
-fn branch_pill<'a>(status: &'a Status, p: &'static Palette) -> Element<'a, Message> {
+fn branch_pill<'a>(
+    status: &'a Status,
+    rebasing: Option<&str>,
+    p: &'static Palette,
+) -> Element<'a, Message> {
     let branch = &status.branch;
-    let (name, tint) = match &branch.head {
-        Some(head) => (head.clone(), style::branch_tint(p, head)),
-        None => (t!("pill.detached").into_owned(), p.warning),
+    let (name, tint) = match (rebasing, &branch.head) {
+        (Some(name), _) => (name.to_string(), style::branch_tint(p, name)),
+        (None, Some(head)) => (head.clone(), style::branch_tint(p, head)),
+        (None, None) => (t!("pill.detached").into_owned(), p.warning),
     };
     let sync = match (&branch.upstream, branch.ahead, branch.behind) {
+        _ if rebasing.is_some() => t!("pill.rebasing").into_owned(),
         (None, _, _) if branch.oid.is_none() => String::new(),
         (None, _, _) => t!("pill.unpublished").into_owned(),
         (Some(_), 0, 0) => t!("pill.up_to_date").into_owned(),

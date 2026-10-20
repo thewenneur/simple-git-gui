@@ -420,6 +420,16 @@ pub fn selected_row(theme: &Theme) -> container::Style {
     }
 }
 
+/// A history row a drag would drop on.
+pub fn drop_target(theme: &Theme) -> container::Style {
+    let p = palette(theme);
+    container::Style {
+        background: Some(p.accent.soft.into()),
+        border: border(p.accent.strong, 2.0, 4.0),
+        ..container::Style::default()
+    }
+}
+
 pub fn accent_bar(theme: &Theme) -> container::Style {
     container::Style {
         background: Some(palette(theme).accent.strong.into()),
@@ -476,6 +486,82 @@ pub fn dialog(theme: &Theme) -> container::Style {
     container::Style {
         text_color: Some(p.text),
         ..boxed(p.surface, p.border, 8.0)
+    }
+}
+
+/// A badge with only an outline (remote branches).
+pub fn outlined_badge(tint: Tint) -> impl Fn(&Theme) -> container::Style {
+    move |theme| container::Style {
+        background: Some(palette(theme).surface.into()),
+        text_color: Some(tint.text),
+        border: border(tint.strong, 1.0, 10.0),
+        ..container::Style::default()
+    }
+}
+
+/// The "you are here" badge of a detached HEAD (iced draws no dashes, so a
+/// strong outline on the soft color stands for the dashed border).
+pub fn dashed_badge(tint: Tint) -> impl Fn(&Theme) -> container::Style {
+    move |_| container::Style {
+        background: Some(tint.soft.into()),
+        text_color: Some(tint.text),
+        border: border(tint.strong, 1.0, 10.0),
+        ..container::Style::default()
+    }
+}
+
+/// A floating menu (right-click).
+pub fn popup(theme: &Theme) -> container::Style {
+    let p = palette(theme);
+    container::Style {
+        text_color: Some(p.text),
+        shadow: Shadow {
+            color: Color::from_rgba8(0x18, 0x20, 0x2B, 0.18),
+            offset: iced::Vector::new(0.0, 6.0),
+            blur_radius: 18.0,
+        },
+        ..boxed(p.surface, p.input_border, 8.0)
+    }
+}
+
+/// A step of the conflict assistant's header: done, current or to come.
+pub fn wizard_step(state: std::cmp::Ordering) -> impl Fn(&Theme) -> container::Style {
+    move |_| match state {
+        std::cmp::Ordering::Less => container::Style {
+            background: Some(color!(0x263040).into()),
+            text_color: Some(color!(0x9FE0BC)),
+            border: border(Color::TRANSPARENT, 0.0, 14.0),
+            ..container::Style::default()
+        },
+        std::cmp::Ordering::Equal => container::Style {
+            background: Some(Color::WHITE.into()),
+            text_color: Some(color!(0x18202B)),
+            border: border(Color::TRANSPARENT, 0.0, 14.0),
+            ..container::Style::default()
+        },
+        std::cmp::Ordering::Greater => container::Style {
+            text_color: Some(journal::HINT),
+            border: border(journal::BUTTON_BORDER, 1.0, 14.0),
+            ..container::Style::default()
+        },
+    }
+}
+
+/// Header of one side of a conflict, in its branch's color.
+pub fn side_header(tint: Tint) -> impl Fn(&Theme) -> container::Style {
+    move |_| container::Style {
+        background: Some(tint.soft.into()),
+        border: Border {
+            color: tint.strong,
+            width: 0.0,
+            radius: 0.0.into(),
+        },
+        shadow: Shadow {
+            color: tint.strong,
+            offset: iced::Vector::new(0.0, 2.0),
+            blur_radius: 0.0,
+        },
+        ..container::Style::default()
     }
 }
 
@@ -669,6 +755,69 @@ pub fn soft_segment(selected: bool) -> impl Fn(&Theme, button::Status) -> button
         };
         style.border.radius = 0.0.into();
         style
+    }
+}
+
+/// An entry of a right-click menu.
+pub fn menu_item(theme: &Theme, status: button::Status) -> button::Style {
+    let p = palette(theme);
+    let mut style = match status {
+        button::Status::Disabled => button_base(None, p.disabled, Color::TRANSPARENT, 0.0),
+        button::Status::Hovered | button::Status::Pressed => {
+            button_base(Some(p.accent.soft), p.text, Color::TRANSPARENT, 0.0)
+        }
+        button::Status::Active => button_base(None, p.text, Color::TRANSPARENT, 0.0),
+    };
+    style.border.radius = 4.0.into();
+    style
+}
+
+/// A button that does something hard to take back (delete for good).
+pub fn danger(theme: &Theme, status: button::Status) -> button::Style {
+    let p = palette(theme);
+    match status {
+        button::Status::Disabled => {
+            button_base(Some(p.border_soft), p.disabled, Color::TRANSPARENT, 0.0)
+        }
+        button::Status::Hovered | button::Status::Pressed => {
+            button_base(Some(p.removed.text), Color::WHITE, Color::TRANSPARENT, 0.0)
+        }
+        button::Status::Active => button_base(
+            Some(p.removed.strong),
+            Color::WHITE,
+            Color::TRANSPARENT,
+            0.0,
+        ),
+    }
+}
+
+/// The fix button of a warning banner.
+pub fn warning_button(theme: &Theme, status: button::Status) -> button::Style {
+    let p = palette(theme);
+    match status {
+        button::Status::Disabled => {
+            button_base(Some(p.border_soft), p.disabled, Color::TRANSPARENT, 0.0)
+        }
+        _ => button_base(
+            Some(p.warning.strong),
+            Color::WHITE,
+            Color::TRANSPARENT,
+            0.0,
+        ),
+    }
+}
+
+/// "Keep this version" under one side of a conflict.
+pub fn side_button(tint: Tint, picked: bool) -> impl Fn(&Theme, button::Status) -> button::Style {
+    move |theme, status| {
+        let p = palette(theme);
+        if picked {
+            button_base(Some(tint.strong), Color::WHITE, tint.strong, 1.0)
+        } else if matches!(status, button::Status::Hovered) {
+            button_base(Some(tint.soft), tint.text, tint.strong, 1.0)
+        } else {
+            button_base(Some(p.surface), tint.text, tint.strong, 1.0)
+        }
     }
 }
 

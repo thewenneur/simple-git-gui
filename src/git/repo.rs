@@ -105,11 +105,15 @@ const SEP: char = '\u{1f}';
 pub fn log_command(root: &Path, limit: usize) -> GitCommand {
     GitCommand::new([
         "log".to_string(),
-        "--all".to_string(),
+        // Not --all: it would show the commits git makes to set changes aside.
+        "--branches".to_string(),
+        "--remotes".to_string(),
+        "--tags".to_string(),
         "--topo-order".to_string(),
         format!("--max-count={limit}"),
         "--date=format:%Y-%m-%d %H:%M".to_string(),
         "--format=%H%x1f%h%x1f%P%x1f%an%x1f%ad%x1f%D%x1f%s".to_string(),
+        "HEAD".to_string(),
     ])
     .in_dir(root)
 }

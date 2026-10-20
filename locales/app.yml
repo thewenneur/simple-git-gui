@@ -267,8 +267,8 @@ sidebar.here:
   fr: "ici"
 
 history.title:
-  en: "History"
-  fr: "Historique"
+  en: "History and branches"
+  fr: "Historique et branches"
 
 journal.copy:
   en: "Copy"
@@ -297,6 +297,10 @@ pill.unpublished:
 pill.detached:
   en: "detached HEAD"
   fr: "HEAD détaché"
+
+pill.rebasing:
+  en: "rebase in progress"
+  fr: "rebase en cours"
 
 # ---- step 2: everyday actions
 
@@ -779,3 +783,534 @@ config.applied_on_enter:
 config.footer_hint:
   en: "Each change runs a git config command, shown in the Git journal, and can be undone with Ctrl+Z."
   fr: "Chaque changement lance une commande git config, visible dans le journal Git, et s'annule avec Ctrl+Z."
+
+# Branches and commits of the history
+sidebar.set_aside:
+  en: "%{count} set aside"
+  fr: "%{count} mis de côté"
+history.search:
+  en: "Search a message, an author, an id"
+  fr: "Chercher un message, un auteur, un identifiant"
+history.tip:
+  en: "Click a commit to see what it changed; Ctrl+click a second one to compare them. Right-click a commit or a branch for its actions; double-click a branch to go onto it."
+  fr: "Cliquez sur un commit pour voir ce qu'il a changé ; Ctrl+clic sur un second pour les comparer. Clic droit sur un commit ou une branche pour ses actions ; double-clic sur une branche pour y aller."
+history.you_are_here:
+  en: "you are here"
+  fr: "vous êtes ici"
+history.branch_here:
+  en: "%{branch} · here"
+  fr: "%{branch} · ici"
+history.badge_tip:
+  en: "Double-click to go onto this branch, right-click for more"
+  fr: "Double-clic pour aller sur cette branche, clic droit pour plus"
+history.comparing:
+  en: "Comparison of two commits"
+  fr: "Comparaison de deux commits"
+history.compare_with_files:
+  en: "Compared with your files"
+  fr: "Comparé avec vos fichiers"
+history.from_commit_to_files:
+  en: "From commit %{commit} to the files on your disk"
+  fr: "Du commit %{commit} aux fichiers de votre disque"
+history.no_files:
+  en: "No file changed."
+  fr: "Aucun fichier modifié."
+history.no_text_change:
+  en: "No change in the text (permissions or whitespace only)."
+  fr: "Aucun changement dans le texte (droits ou espaces seulement)."
+history.renamed_from:
+  en: "renamed from %{path}"
+  fr: "renommé depuis %{path}"
+history.restore_file:
+  en: "Restore this version"
+  fr: "Récupérer cette version"
+history.copied:
+  en: "Id %{id} copied."
+  fr: "Identifiant %{id} copié."
+menu.new_branch:
+  en: "Create a branch here…"
+  fr: "Créer une branche ici…"
+menu.new_tag:
+  en: "Add a tag (version)…"
+  fr: "Poser une étiquette (version)…"
+menu.show:
+  en: "See what changed in this commit"
+  fr: "Voir ce qui a changé dans ce commit"
+menu.compare_files:
+  en: "Compare with my current files"
+  fr: "Comparer avec mes fichiers actuels"
+menu.cherry_pick:
+  en: "Copy this commit onto %{branch}"
+  fr: "Copier ce commit sur %{branch}"
+menu.here:
+  en: "the current position"
+  fr: "la position actuelle"
+menu.revert:
+  en: "Undo this commit (new reverse commit)"
+  fr: "Défaire ce commit (nouveau commit inverse)"
+menu.reword:
+  en: "Edit the message…"
+  fr: "Modifier le message…"
+menu.reword_pushed:
+  en: "Edit the message (already sent)"
+  fr: "Modifier le message (déjà envoyé)"
+menu.reword_not_here:
+  en: "Edit the message (commits of your branch only)"
+  fr: "Modifier le message (commits de votre branche seulement)"
+menu.copy_id:
+  en: "Copy the id"
+  fr: "Copier l'identifiant"
+menu.branch_title:
+  en: "Branch %{branch}"
+  fr: "Branche %{branch}"
+menu.switch:
+  en: "Go onto %{branch}"
+  fr: "Aller sur %{branch}"
+menu.merge:
+  en: "Bring %{branch} into %{into} (merge)…"
+  fr: "Intégrer %{branch} dans %{into} (merge)…"
+menu.rebase:
+  en: "Replay %{branch} after %{onto} (rebase)…"
+  fr: "Rejouer %{branch} après %{onto} (rebase)…"
+menu.delete_branch:
+  en: "Delete the branch %{branch}"
+  fr: "Supprimer la branche %{branch}"
+dialog.new_branch_title:
+  en: "Create a branch"
+  fr: "Créer une branche"
+dialog.new_branch_intro:
+  en: "The new branch starts at commit %{commit}."
+  fr: "La nouvelle branche part du commit %{commit}."
+dialog.branch_placeholder:
+  en: "feature/my-change"
+  fr: "feature/mon-changement"
+dialog.switch_to_it:
+  en: "Go onto it right away (your changes come along)"
+  fr: "Y aller tout de suite (vos modifications suivent)"
+dialog.new_tag_title:
+  en: "Add a tag"
+  fr: "Poser une étiquette"
+dialog.new_tag_intro:
+  en: "A tag marks commit %{commit} with a name, such as a version number."
+  fr: "Une étiquette donne un nom au commit %{commit}, par exemple un numéro de version."
+dialog.tag_placeholder:
+  en: "v1.0"
+  fr: "v1.0"
+dialog.reword_title:
+  en: "Edit the message of the last commit"
+  fr: "Modifier le message du dernier commit"
+dialog.reword_intro:
+  en: "Only the message changes; files staged meanwhile are left out."
+  fr: "Seul le message change ; les fichiers préparés entre-temps ne sont pas inclus."
+dialog.force_delete_title:
+  en: "Delete %{branch} anyway?"
+  fr: "Supprimer %{branch} quand même ?"
+dialog.force_delete_intro:
+  en: "Some commits of %{branch} are on no other branch: they would no longer be reachable by a name."
+  fr: "Certains commits de %{branch} ne sont sur aucune autre branche : ils ne seraient plus accessibles par un nom."
+dialog.force_delete_undo:
+  en: "You can bring the branch back with Ctrl+Z."
+  fr: "Vous pourrez faire revenir la branche avec Ctrl+Z."
+dialog.delete_anyway:
+  en: "Delete anyway"
+  fr: "Supprimer quand même"
+dialog.create:
+  en: "Create"
+  fr: "Créer"
+dialog.save:
+  en: "Save"
+  fr: "Enregistrer"
+dialog.undoable:
+  en: "Can be undone with Ctrl+Z"
+  fr: "Annulable avec Ctrl+Z"
+detached.title:
+  en: "You are looking at an old commit, outside any branch (\"detached HEAD\")."
+  fr: "Vous consultez un ancien commit, hors de toute branche (« HEAD détaché »)."
+detached.text:
+  en: "You can look and test. If you save commits here without creating a branch, they will be hard to find again."
+  fr: "Vous pouvez regarder et tester. Si vous enregistrez ici sans créer de branche, ces commits seront difficiles à retrouver."
+detached.create_branch:
+  en: "Create a branch here"
+  fr: "Créer une branche ici"
+detached.go_back:
+  en: "Go back to %{branch}"
+  fr: "Revenir sur %{branch}"
+busy.switching:
+  en: "Going onto %{branch}…"
+  fr: "Passage sur %{branch}…"
+busy.cherry_picking:
+  en: "Copying the commit…"
+  fr: "Copie du commit…"
+busy.reverting:
+  en: "Undoing the commit…"
+  fr: "Annulation du commit…"
+busy.integrating:
+  en: "Integration in progress…"
+  fr: "Intégration en cours…"
+busy.proceeding:
+  en: "Carrying on…"
+  fr: "Poursuite de l'opération…"
+undo.switch:
+  en: "Go onto %{branch}"
+  fr: "Aller sur %{branch}"
+undo.new_branch:
+  en: "Create the branch %{branch}"
+  fr: "Créer la branche %{branch}"
+undo.new_branch_switch:
+  en: "Create the branch %{branch} and go onto it"
+  fr: "Créer la branche %{branch} et y aller"
+undo.new_tag:
+  en: "Add the tag %{tag}"
+  fr: "Poser l'étiquette %{tag}"
+undo.delete_branch:
+  en: "Delete the branch %{branch}"
+  fr: "Supprimer la branche %{branch}"
+undo.cherry_pick:
+  en: "Copy commit %{commit}"
+  fr: "Copier le commit %{commit}"
+undo.revert:
+  en: "Undo commit %{commit}"
+  fr: "Défaire le commit %{commit}"
+undo.reword:
+  en: "Edit the last commit's message"
+  fr: "Modifier le message du dernier commit"
+undo.restore_file:
+  en: "Restore %{path} from %{commit}"
+  fr: "Récupérer %{path} depuis %{commit}"
+undo.merge:
+  en: "Merge %{branch} into %{into}"
+  fr: "Intégrer %{branch} dans %{into}"
+undo.rebase:
+  en: "Rebase %{branch} onto %{onto}"
+  fr: "Rebaser %{branch} sur %{onto}"
+undo.resolve:
+  en: "Settle the conflict in %{path}"
+  fr: "Résoudre le conflit dans %{path}"
+undo.remove_duplicate:
+  en: "Remove a duplicated block in %{path}"
+  fr: "Retirer un bloc en double dans %{path}"
+error.integrate_refused:
+  en: "The operation did not start: %{detail}"
+  fr: "L'opération n'a pas démarré : %{detail}"
+error.proceed_failed:
+  en: "Could not carry on: %{detail}"
+  fr: "Impossible de poursuivre : %{detail}"
+
+# Merge and rebase assistant
+integrate.merge_title:
+  en: "Bring %{branch} into %{into}?"
+  fr: "Intégrer %{branch} dans %{into} ?"
+integrate.merge_intro:
+  en: "The commits of %{branch} join %{into} with a merge commit. Nothing is saved before you have checked the result."
+  fr: "Les commits de %{branch} rejoignent %{into} par un commit de fusion. Rien n'est enregistré avant que vous ayez vérifié le résultat."
+integrate.merge_button:
+  en: "Merge"
+  fr: "Fusionner"
+integrate.rebase_title:
+  en: "Replay %{branch} after %{onto}?"
+  fr: "Rejouer %{branch} après %{onto} ?"
+integrate.rebase_intro:
+  en: "Your commits of %{branch} are replayed one by one after the last commit of %{onto}. The history stays in a straight line; the commits get new ids."
+  fr: "Vos commits de %{branch} sont rejoués un par un après le dernier commit de %{onto}. L'historique reste en ligne droite ; les commits reçoivent de nouveaux identifiants."
+integrate.rebase_button:
+  en: "Rebase"
+  fr: "Rebaser"
+integrate.rebase_pushed:
+  en: "%{branch} is already on the server. After this rebase, sending it will have to replace the server's version (without overwriting a colleague's work: --force-with-lease)."
+  fr: "%{branch} est déjà sur le serveur. Après ce rebase, l'envoi devra remplacer la version du serveur (sans écraser le travail d'un collègue : --force-with-lease)."
+integrate.ignore_whitespace:
+  en: "Ignore changes of spaces and line endings (fewer false conflicts)"
+  fr: "Ignorer les changements d'espaces et de fins de ligne (moins de faux conflits)"
+integrate.autostash:
+  en: "Your local changes are set aside during the operation and put back afterwards."
+  fr: "Vos modifications locales sont mises de côté pendant l'opération, puis remises."
+integrate.steps:
+  en: "If both branches changed the same lines, the assistant shows each side with its branch name so you can choose. Conflicts you settle are remembered and settled the same way if they come back (rerere)."
+  fr: "Si les deux branches ont changé les mêmes lignes, l'assistant montre chaque côté avec le nom de sa branche pour que vous choisissiez. Les conflits résolus sont mémorisés et résolus de la même façon s'ils reviennent (rerere)."
+integrate.loading:
+  en: "Reading the operation in progress…"
+  fr: "Lecture de l'opération en cours…"
+integrate.into:
+  en: "into"
+  fr: "dans"
+integrate.onto:
+  en: "replayed after"
+  fr: "rejoué après"
+integrate.step_prepare:
+  en: "Prepare"
+  fr: "Préparer"
+integrate.step_resolve:
+  en: "Settle"
+  fr: "Résoudre"
+integrate.step_check:
+  en: "Check"
+  fr: "Vérifier"
+integrate.step_save:
+  en: "Save"
+  fr: "Enregistrer"
+integrate.files_title:
+  en: "Files changed by both sides"
+  fr: "Fichiers touchés par les deux côtés"
+integrate.file_conflicts:
+  en: "%{total} conflicts, %{settled} settled"
+  fr: "%{total} conflits, %{settled} résolus"
+integrate.file_whole:
+  en: "Choose a whole version"
+  fr: "Choisir une version entière"
+integrate.file_settled:
+  en: "✓ Settled"
+  fr: "✓ Résolu"
+integrate.file_duplicates:
+  en: "%{count} block(s) found twice"
+  fr: "%{count} bloc(s) en double"
+integrate.file_review:
+  en: "Merged automatically, to review"
+  fr: "Fusionné automatiquement, à relire"
+integrate.false_conflicts_note:
+  en: "Changes of spaces and line endings are ignored, which avoids false conflicts. The conflicts you settle here are reused if the same conflict comes back (rerere)."
+  fr: "Les changements d'espaces et de fins de ligne sont ignorés, ce qui évite les faux conflits. Les résolutions faites ici sont réutilisées si le même conflit revient (rerere)."
+integrate.no_files:
+  en: "No conflict: git combined both sides by itself. Check the result in History if you want, then save."
+  fr: "Aucun conflit : git a combiné les deux côtés tout seul. Vérifiez le résultat dans l'historique si vous voulez, puis enregistrez."
+integrate.role_current_merge:
+  en: "where you are"
+  fr: "où vous êtes"
+integrate.role_incoming_merge:
+  en: "what you are bringing in"
+  fr: "ce que vous intégrez"
+integrate.role_current_rebase:
+  en: "the base your commits are replayed on"
+  fr: "la base sur laquelle vos commits sont rejoués"
+integrate.role_incoming_rebase:
+  en: "your commit being replayed: %{commit}"
+  fr: "votre commit en cours de rejeu : %{commit}"
+integrate.role_incoming_pick:
+  en: "the commit being copied"
+  fr: "le commit copié"
+integrate.role_incoming_revert:
+  en: "the undo of the commit"
+  fr: "l'annulation du commit"
+integrate.conflict_title:
+  en: "Conflict %{index} of %{total} · %{path}"
+  fr: "Conflit %{index} sur %{total} · %{path}"
+integrate.keep_side:
+  en: "Keep the version of %{branch}"
+  fr: "Garder la version de %{branch}"
+integrate.keep_both:
+  en: "Keep both (%{first} then %{second})"
+  fr: "Garder les deux (%{first} puis %{second})"
+integrate.write_myself:
+  en: "Write the result myself"
+  fr: "Écrire le résultat moi-même"
+integrate.use_text:
+  en: "Use this text"
+  fr: "Utiliser ce texte"
+integrate.show_base:
+  en: "See the common version (before both) ▾"
+  fr: "Voir la version commune (avant les deux) ▾"
+integrate.hide_base:
+  en: "Hide the common version ▴"
+  fr: "Masquer la version commune ▴"
+integrate.base_title:
+  en: "Common version, before both changes"
+  fr: "Version commune, avant les deux changements"
+integrate.empty_side:
+  en: "(nothing: the lines were removed)"
+  fr: "(rien : les lignes ont été supprimées)"
+integrate.result_title:
+  en: "Result in %{path}"
+  fr: "Résultat dans %{path}"
+integrate.save_file:
+  en: "Save this file"
+  fr: "Enregistrer ce fichier"
+integrate.result_ok:
+  en: "All conflicts are settled and no block is found twice."
+  fr: "Tous les conflits sont résolus et aucun bloc n'est en double."
+integrate.result_pending:
+  en: "%{count} conflict(s) left to settle above."
+  fr: "Encore %{count} conflit(s) à résoudre ci-dessus."
+integrate.settled_title:
+  en: "%{path} is settled"
+  fr: "%{path} est résolu"
+integrate.review_title:
+  en: "%{path}, merged by git"
+  fr: "%{path}, fusionné par git"
+integrate.no_duplicates:
+  en: "No block is found twice in this file."
+  fr: "Aucun bloc en double dans ce fichier."
+integrate.whole_title:
+  en: "%{path} can't be split into conflicts"
+  fr: "%{path} ne peut pas être découpé en conflits"
+integrate.whole_intro:
+  en: "It is a binary file, or one side deleted it. Choose which whole version to keep."
+  fr: "C'est un fichier binaire, ou un côté l'a supprimé. Choisissez quelle version entière garder."
+integrate.keep_whole:
+  en: "Keep the file of %{branch}"
+  fr: "Garder le fichier de %{branch}"
+integrate.duplicate:
+  en: "Block found twice: “%{block}” (%{count} lines, at lines %{a} and %{b})"
+  fr: "Bloc en double : « %{block} » (%{count} lignes, aux lignes %{a} et %{b})"
+integrate.duplicate_hint:
+  en: "One side moved it, the other kept it in place: it was moved, not added. The copy at line %{line} is the old one."
+  fr: "Un côté l'a déplacé, l'autre l'a gardé en place : il a été déplacé, pas ajouté. La copie de la ligne %{line} est l'ancienne."
+integrate.keep_one_copy:
+  en: "Keep a single copy"
+  fr: "Garder une seule copie"
+integrate.abort:
+  en: "Stop everything and go back to before"
+  fr: "Tout arrêter et revenir comme avant"
+integrate.remaining:
+  en: "%{count} file(s) still in conflict"
+  fr: "%{count} fichier(s) encore en conflit"
+integrate.remaining_duplicates:
+  en: "%{count} block(s) found twice to check"
+  fr: "%{count} bloc(s) en double à vérifier"
+integrate.ready:
+  en: "Ready to save"
+  fr: "Prêt à enregistrer"
+integrate.save_merge:
+  en: "Save the merge"
+  fr: "Enregistrer la fusion"
+integrate.continue_rebase:
+  en: "Continue the rebase"
+  fr: "Continuer le rebase"
+integrate.continue:
+  en: "Continue"
+  fr: "Continuer"
+integrate.done:
+  en: "Done: %{action}. Ctrl+Z goes back to before."
+  fr: "Terminé : %{action}. Ctrl+Z revient à avant."
+integrate.done_plain:
+  en: "The operation is finished."
+  fr: "L'opération est terminée."
+integrate.conflict_started:
+  en: "Both sides changed the same lines: the assistant shows them so you can choose."
+  fr: "Les deux côtés ont changé les mêmes lignes : l'assistant les montre pour que vous choisissiez."
+integrate.after_title:
+  en: "After the rebase, some blocks are found twice"
+  fr: "Après le rebase, des blocs sont en double"
+
+# Drag and drop in the history
+busy.sending:
+  en: "Sending…"
+  fr: "Envoi…"
+busy.rewriting:
+  en: "Rewriting the commits…"
+  fr: "Réécriture des commits…"
+undo.move_branch:
+  en: "Moving %{branch} to %{commit}"
+  fr: "Le déplacement de %{branch} sur %{commit}"
+undo.pull_branch:
+  en: "Getting %{branch}"
+  fr: "La récupération de %{branch}"
+undo.squash:
+  en: "Squashing %{commit} into %{into}"
+  fr: "La fusion de %{commit} dans %{into}"
+undo.swap:
+  en: "Swapping %{first} and %{second}"
+  fr: "L'échange de %{first} et %{second}"
+drop.busy:
+  en: "Finish or stop the operation in progress first."
+  fr: "Terminez ou arrêtez d'abord l'opération en cours."
+drop.remote_moves:
+  en: "%{branch} is on the server: it moves when someone sends to it. Drop it on your own branch to get it."
+  fr: "%{branch} est sur le serveur : elle bouge quand quelqu'un y envoie. Déposez-la sur votre branche pour la récupérer."
+drop.cherry_pick_elsewhere:
+  en: "To copy a commit onto %{branch}, go onto %{branch} first."
+  fr: "Pour copier un commit sur %{branch}, allez d'abord sur %{branch}."
+drop.not_neighbours:
+  en: "Only two neighbouring commits can be swapped or squashed."
+  fr: "Seuls deux commits voisins peuvent être échangés ou fusionnés."
+drop.merge_inside:
+  en: "There is a merge among these commits: they can't be rewritten here."
+  fr: "Il y a une fusion parmi ces commits : ils ne peuvent pas être réécrits ici."
+drop.already_sent:
+  en: "These commits are already on the server: rewriting them would disturb your colleagues."
+  fr: "Ces commits sont déjà sur le serveur : les réécrire gênerait vos collègues."
+drop.go_there_first:
+  en: "To bring this into %{branch}, go onto %{branch} first (double-click it)."
+  fr: "Pour intégrer ceci dans %{branch}, allez d'abord sur %{branch} (double-clic)."
+drop.label_merge:
+  en: "Merge %{branch} into %{into}"
+  fr: "Fusionner %{branch} dans %{into}"
+drop.label_rebase:
+  en: "Replay %{branch} after %{onto}"
+  fr: "Rejouer %{branch} après %{onto}"
+drop.label_rebase_from:
+  en: "Move the commits from %{commit} onto %{onto}"
+  fr: "Déplacer les commits à partir de %{commit} sur %{onto}"
+drop.label_cherry_pick:
+  en: "Copy %{commit} onto %{onto}"
+  fr: "Copier %{commit} sur %{onto}"
+drop.label_move:
+  en: "Move %{branch} to %{commit}"
+  fr: "Déplacer %{branch} sur %{commit}"
+drop.label_push:
+  en: "Send %{branch} to %{remote}"
+  fr: "Envoyer %{branch} vers %{remote}"
+drop.label_pull:
+  en: "Get %{remote} into %{branch}"
+  fr: "Récupérer %{remote} dans %{branch}"
+drop.label_rewrite:
+  en: "Swap or squash these two commits"
+  fr: "Échanger ou fusionner ces deux commits"
+drop.drag_commit:
+  en: "Commit %{commit}: drop it on a commit or a branch"
+  fr: "Commit %{commit} : déposez-le sur un commit ou une branche"
+drop.drag_branch:
+  en: "%{branch}: drop it on a commit to move it"
+  fr: "%{branch} : déposez-la sur un commit pour la déplacer"
+drop.cherry_pick_intro:
+  en: "A copy of « %{subject} » is added on top of %{onto}. The original stays where it is."
+  fr: "Une copie de « %{subject} » est ajoutée au bout de %{onto}. L'original reste où il est."
+drop.cherry_pick_button:
+  en: "Copy"
+  fr: "Copier"
+drop.move_intro:
+  en: "%{branch} will point at « %{subject} ». Its old position is kept under refs/backup/%{branch}."
+  fr: "%{branch} pointera sur « %{subject} ». Son ancienne position est gardée sous refs/backup/%{branch}."
+drop.move_current_intro:
+  en: "You are on %{branch}: it will point at « %{subject} » and your files follow (git refuses if that would lose local changes). Its old position is kept under refs/backup/%{branch}."
+  fr: "Vous êtes sur %{branch} : elle pointera sur « %{subject} » et vos fichiers suivent (git refuse si cela perdait des modifications locales). Son ancienne position est gardée sous refs/backup/%{branch}."
+drop.move_button:
+  en: "Move"
+  fr: "Déplacer"
+drop.push_intro:
+  en: "Your commits of %{branch} go to %{remote}. If a colleague sent something meanwhile, git refuses: get it first."
+  fr: "Vos commits de %{branch} partent vers %{remote}. Si un collègue a envoyé quelque chose entre-temps, git refuse : récupérez d'abord."
+drop.push_button:
+  en: "Send"
+  fr: "Envoyer"
+drop.push_not_undoable:
+  en: "Once sent, it can't be undone with Ctrl+Z"
+  fr: "Une fois envoyé, Ctrl+Z ne peut plus l'annuler"
+drop.pushed:
+  en: "%{branch} sent."
+  fr: "%{branch} envoyée."
+drop.pull_intro:
+  en: "%{branch} moves forward to %{remote}. If both have different commits, git refuses: go onto %{branch} and use Get."
+  fr: "%{branch} avance jusqu'à %{remote}. Si les deux ont des commits différents, git refuse : allez sur %{branch} et utilisez Récupérer."
+drop.pull_button:
+  en: "Get"
+  fr: "Récupérer"
+drop.swap:
+  en: "Swap their order"
+  fr: "Échanger leur ordre"
+drop.squash:
+  en: "Squash into one commit"
+  fr: "Les fusionner en un seul commit"
+drop.swap_intro:
+  en: "« %{newer} » goes before « %{older} ». The commits get new ids; nothing else changes."
+  fr: "« %{newer} » passe avant « %{older} ». Les commits reçoivent de nouveaux identifiants ; rien d'autre ne change."
+drop.squash_intro:
+  en: "« %{newer} » is merged into « %{older} »: one commit with both changes and both messages."
+  fr: "« %{newer} » est fusionné dans « %{older} » : un seul commit avec les deux changements et les deux messages."
+drop.swap_button:
+  en: "Swap"
+  fr: "Échanger"
+drop.squash_button:
+  en: "Squash"
+  fr: "Fusionner"
+drop.rebase_after_note:
+  en: "Only the commits after %{commit} are moved; the ones before stay where they are."
+  fr: "Seuls les commits après %{commit} sont déplacés ; ceux d'avant restent où ils sont."
