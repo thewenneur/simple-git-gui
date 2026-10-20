@@ -870,8 +870,8 @@ menu.merge:
   en: "Bring %{branch} into %{into} (merge)…"
   fr: "Intégrer %{branch} dans %{into} (merge)…"
 menu.rebase:
-  en: "Replay %{branch} after %{onto} (rebase)…"
-  fr: "Rejouer %{branch} après %{onto} (rebase)…"
+  en: "Move %{branch} onto %{onto} (rebase)…"
+  fr: "Déplacer %{branch} sur %{onto} (rebase)…"
 menu.delete_branch:
   en: "Delete the branch %{branch}"
   fr: "Supprimer la branche %{branch}"
@@ -1007,11 +1007,11 @@ integrate.merge_button:
   en: "Merge"
   fr: "Fusionner"
 integrate.rebase_title:
-  en: "Replay %{branch} after %{onto}?"
-  fr: "Rejouer %{branch} après %{onto} ?"
+  en: "Move %{branch} onto %{onto}?"
+  fr: "Déplacer %{branch} sur %{onto} ?"
 integrate.rebase_intro:
-  en: "Your commits of %{branch} are replayed one by one after the last commit of %{onto}. The history stays in a straight line; the commits get new ids."
-  fr: "Vos commits de %{branch} sont rejoués un par un après le dernier commit de %{onto}. L'historique reste en ligne droite ; les commits reçoivent de nouveaux identifiants."
+  en: "Your commits of %{branch} are moved one by one after the last commit of %{onto}. The history stays in a straight line; the commits get new ids."
+  fr: "Vos commits de %{branch} sont déplacés un par un après le dernier commit de %{onto}. L'historique reste en ligne droite ; les commits reçoivent de nouveaux identifiants."
 integrate.rebase_button:
   en: "Rebase"
   fr: "Rebaser"
@@ -1034,8 +1034,8 @@ integrate.into:
   en: "into"
   fr: "dans"
 integrate.onto:
-  en: "replayed after"
-  fr: "rejoué après"
+  en: "moved onto"
+  fr: "déplacé sur"
 integrate.step_prepare:
   en: "Prepare"
   fr: "Préparer"
@@ -1079,11 +1079,11 @@ integrate.role_incoming_merge:
   en: "what you are bringing in"
   fr: "ce que vous intégrez"
 integrate.role_current_rebase:
-  en: "the base your commits are replayed on"
-  fr: "la base sur laquelle vos commits sont rejoués"
+  en: "the base your commits are moved onto"
+  fr: "la base sur laquelle vos commits sont déplacés"
 integrate.role_incoming_rebase:
-  en: "your commit being replayed: %{commit}"
-  fr: "votre commit en cours de rejeu : %{commit}"
+  en: "your commit being moved: %{commit}"
+  fr: "votre commit en cours de déplacement : %{commit}"
 integrate.role_incoming_pick:
   en: "the commit being copied"
   fr: "le commit copié"
@@ -1234,8 +1234,8 @@ drop.label_merge:
   en: "Merge %{branch} into %{into}"
   fr: "Fusionner %{branch} dans %{into}"
 drop.label_rebase:
-  en: "Replay %{branch} after %{onto}"
-  fr: "Rejouer %{branch} après %{onto}"
+  en: "Move %{branch} onto %{onto}"
+  fr: "Déplacer %{branch} sur %{onto}"
 drop.label_rebase_from:
   en: "Move the commits from %{commit} onto %{onto}"
   fr: "Déplacer les commits à partir de %{commit} sur %{onto}"
@@ -1314,6 +1314,9 @@ drop.squash_button:
 drop.rebase_after_note:
   en: "Only the commits after %{commit} are moved; the ones before stay where they are."
   fr: "Seuls les commits après %{commit} sont déplacés ; ceux d'avant restent où ils sont."
+drop.rebase_other_note:
+  en: "Git first goes onto %{branch}, and you stay on it afterwards."
+  fr: "Git passe d'abord sur %{branch}, et vous y restez ensuite."
 
 # Submodules, Git LFS locks and .gitignore templates
 nav.submodules:
@@ -1878,6 +1881,51 @@ workspaces.force_intro_submodules:
 workspaces.remove_submodules:
   en: "Git only removes a workspace whose submodules were downloaded when forced: turn on advanced mode and use « Remove… »."
   fr: "Git ne supprime un espace de travail dont les sous-modules sont téléchargés qu'en forçant : activez le mode avancé et utilisez « Supprimer… »."
+
+# ---- large views: a file's diff, the project at a commit
+
+viewer.open_large:
+  en: "Open large"
+  fr: "Ouvrir en grand"
+viewer.whole_file:
+  en: "Whole file"
+  fr: "Fichier entier"
+viewer.in_commit:
+  en: "in commit %{commit}"
+  fr: "dans le commit %{commit}"
+viewer.between:
+  en: "from %{from} to %{to}"
+  fr: "de %{from} à %{to}"
+viewer.with_files:
+  en: "from commit %{commit} to my current files"
+  fr: "du commit %{commit} à mes fichiers actuels"
+viewer.browse:
+  en: "Browse the project at this commit"
+  fr: "Parcourir le projet à ce commit"
+viewer.project_at:
+  en: "Project at commit %{commit}"
+  fr: "Projet au commit %{commit}"
+viewer.filter:
+  en: "Find a file"
+  fr: "Chercher un fichier"
+viewer.pick_file:
+  en: "Pick a file to see its content at this commit."
+  fr: "Choisissez un fichier pour voir son contenu à ce commit."
+viewer.no_match:
+  en: "No file matches."
+  fr: "Aucun fichier ne correspond."
+viewer.use_filter:
+  en: "Too many files to list: type part of a name above."
+  fr: "Trop de fichiers à lister : tapez une partie du nom ci-dessus."
+viewer.too_large:
+  en: "This file is too large to show here (%{size} MB)."
+  fr: "Ce fichier est trop gros pour être affiché ici (%{size} Mo)."
+viewer.truncated:
+  en: "Only the first %{count} lines are shown."
+  fr: "Seules les %{count} premières lignes sont affichées."
+menu.browse:
+  en: "Browse the project at this commit"
+  fr: "Parcourir le projet à ce commit"
 
 # Interactive tutorial
 busy.practice:

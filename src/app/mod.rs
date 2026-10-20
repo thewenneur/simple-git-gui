@@ -14,6 +14,7 @@ mod remotes;
 mod sync;
 mod tutorial;
 mod undo;
+mod viewer;
 mod worktrees;
 
 use std::collections::HashMap;
@@ -108,6 +109,8 @@ pub struct App {
     help_open: bool,
     /// Drag-and-drop actions confirmed so far (for the tutorial).
     drops: u32,
+    /// A file or the project at a commit, shown over the whole window.
+    viewer: Option<viewer::Viewer>,
 }
 
 struct OpenRepo {
@@ -357,6 +360,7 @@ pub enum Message {
     Remotes(remotes::Msg),
     Worktrees(worktrees::Msg),
     Tutorial(tutorial::Msg),
+    Viewer(viewer::Msg),
 }
 
 impl App {
@@ -801,6 +805,9 @@ impl App {
                 Task::none()
             }
             Message::Escape => {
+                if self.history_dialog.is_none() && self.context_menu.is_none() {
+                    self.viewer = None;
+                }
                 self.context_menu = None;
                 if let Some(repo) = &mut self.repo {
                     repo.history.drag = None;
@@ -922,6 +929,7 @@ impl App {
             Message::Remotes(msg) => self.remotes_update(msg),
             Message::Worktrees(msg) => self.worktrees_update(msg),
             Message::Tutorial(msg) => self.tutorial_update(msg),
+            Message::Viewer(msg) => self.viewer_update(msg),
         }
     }
 
@@ -1299,9 +1307,19 @@ impl App {
                 .as_ref()
                 .map(|prompt| self.integration_prompt_view(prompt, p))
         };
+        // The large view takes the whole window: nothing is drawn under it.
+        let page: Element<'_, Message> = match self.open_viewer() {
+            Some(viewer) => container(self.viewer_view(viewer, p))
+                .padding(16)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .style(style::page)
+                .into(),
+            None => page.into(),
+        };
         // Always a stack, so the page keeps its state (scrolling) when
         // something opens over it.
-        let mut layers: Vec<Element<'_, Message>> = vec![page.into()];
+        let mut layers: Vec<Element<'_, Message>> = vec![page];
         if let Some(dialog) = dialog {
             layers.push(opaque(
                 container(dialog)

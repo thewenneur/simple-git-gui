@@ -44,6 +44,8 @@ pub enum DropPlan {
         kind: Kind,
         other: String,
         after: Option<String>,
+        /// For a rebase of another branch than the current one.
+        branch: Option<String>,
         /// The commit dropped, for the label.
         moved: Option<String>,
     },
@@ -125,6 +127,24 @@ fn tip<'a>(repo: &'a OpenRepo, branch: &str) -> Option<&'a str> {
         .iter()
         .find(|c| c.refs.iter().any(|r| r == branch))
         .map(|c| c.hash.as_str())
+}
+
+/// A local branch other than the current one that has `hash` among its
+/// commits: the one whose last commit is closest to it.
+fn branch_holding(repo: &OpenRepo, hash: &str, current: Option<&str>) -> Option<String> {
+    // Commits are listed newest first: a tip comes before its commits.
+    let at = |h: &str| repo.commits.iter().position(|c| c.hash == h);
+    let at_hash = at(hash)?;
+    repo.branches
+        .iter()
+        .filter(|b| !b.remote && Some(b.name.as_str()) != current)
+        .filter_map(|b| {
+            let tip = tip(repo, &b.name)?;
+            let distance = at_hash.saturating_sub(at(tip)?);
+            is_ancestor(repo, hash, tip).then_some((distance, &b.name))
+        })
+        .min()
+        .map(|(_, name)| name.clone())
 }
 
 fn is_remote(repo: &OpenRepo, name: &str) -> bool {
@@ -218,12 +238,17 @@ impl App {
             }
             Some(DropPlan::NewWorkspace(start)) => self.new_workspace(Some(start)),
             Some(DropPlan::Integrate {
-                kind, other, after, ..
+                kind,
+                other,
+                after,
+                branch,
+                ..
             }) => {
                 self.drops += 1;
                 let task = self.open_integration(kind, other);
                 if let Some(prompt) = &mut self.integration_prompt {
                     prompt.after = after;
+                    prompt.branch = branch;
                 }
                 task
             }
@@ -391,14 +416,37 @@ impl App {
                             kind: Kind::Rebase,
                             other,
                             after,
+                            branch: None,
                             moved: Some(source.clone()),
                         })
                     }
-                    // Another commit dropped on the current branch: merge it.
+                    // The first own commit of another branch (its parent is
+                    // already behind the target): that branch is replayed there.
+                    (None, _)
+                        if let Some(branch) = branch_holding(repo, source, current)
+                            && commit(repo, source)
+                                .and_then(|c| c.parents.first())
+                                .is_some_and(|parent| is_ancestor(repo, parent, &target_hash))
+                            && !is_ancestor(repo, source, &target_hash) =>
+                    {
+                        let other = target_branch
+                            .clone()
+                            .unwrap_or_else(|| name_of(repo, &target_hash, None));
+                        Some(DropPlan::Integrate {
+                            kind: Kind::Rebase,
+                            other,
+                            after: None,
+                            branch: Some(branch),
+                            moved: Some(source.clone()),
+                        })
+                    }
+                    // The last commit of another branch dropped on the current
+                    // branch: merge it.
                     (None, _) if lands_on_current || lands_on_head => Some(DropPlan::Integrate {
                         kind: Kind::Merge,
                         other: name_of(repo, source, current),
                         after: None,
+                        branch: None,
                         moved: None,
                     }),
                     (None, _) => Some(DropPlan::Refused(
@@ -431,8 +479,16 @@ impl App {
             DropPlan::Integrate {
                 kind: Kind::Rebase,
                 other,
+                branch: Some(branch),
+                after: None,
+                ..
+            } => t!("drop.label_rebase", branch = branch, onto = other),
+            DropPlan::Integrate {
+                kind: Kind::Rebase,
+                other,
                 after: Some(_),
                 moved,
+                ..
             } => t!(
                 "drop.label_rebase_from",
                 commit = moved.as_deref().map(short).unwrap_or_default(),
@@ -759,5 +815,144 @@ impl App {
             .padding(Padding::default().left(x).top(y))
             .into(),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::git::status::{BranchInfo, Status};
+
+    fn commit(hash: &str, parents: &[&str], refs: &[&str]) -> Commit {
+        Commit {
+            hash: hash.into(),
+            short: hash.into(),
+            parents: parents.iter().map(|p| p.to_string()).collect(),
+            author: "Test".into(),
+            date: String::new(),
+            refs: refs.iter().map(|r| r.to_string()).collect(),
+            subject: hash.into(),
+        }
+    }
+
+    /// main: i ← m1 (current, merges done); feature: i ← f1 ← f2;
+    /// fix: i ← x1; done: i ← d1.
+    fn app() -> App {
+        let mut repo = OpenRepo::new(RepoPaths {
+            root: PathBuf::from("/tmp/repo"),
+            git_dir: PathBuf::from("/tmp/repo/.git"),
+        });
+        repo.commits = vec![
+            commit("f2", &["f1"], &["feature"]),
+            commit("x1", &["i"], &["fix"]),
+            commit("m1", &["i", "d1"], &["main"]),
+            commit("d1", &["i"], &["done"]),
+            commit("f1", &["i"], &[]),
+            commit("i", &[], &[]),
+        ];
+        repo.branches = ["main", "feature", "fix", "done"]
+            .iter()
+            .map(|name| Branch {
+                name: name.to_string(),
+                remote: false,
+                current: *name == "main",
+            })
+            .collect();
+        repo.status = Some(Status {
+            branch: BranchInfo {
+                oid: Some("m1".into()),
+                head: Some("main".into()),
+                ..BranchInfo::default()
+            },
+            entries: Vec::new(),
+        });
+        App {
+            repo: Some(repo),
+            ..App::default()
+        }
+    }
+
+    fn plan(app: &App, source: &str, target: Grip) -> Option<DropPlan> {
+        app.plan(&Grip::Commit(source.into()), &target, false)
+    }
+
+    fn rebase(branch: &str, onto: &str, moved: &str) -> Option<DropPlan> {
+        Some(DropPlan::Integrate {
+            kind: Kind::Rebase,
+            other: onto.into(),
+            after: None,
+            branch: Some(branch.into()),
+            moved: Some(moved.into()),
+        })
+    }
+
+    #[test]
+    fn first_commit_of_a_branch_rebases_that_branch() {
+        let app = app();
+        // On main's last commit or on its label.
+        assert_eq!(
+            plan(&app, "f1", Grip::Commit("m1".into())),
+            rebase("feature", "main", "f1")
+        );
+        assert_eq!(
+            plan(&app, "f1", Grip::Branch("main".into())),
+            rebase("feature", "main", "f1")
+        );
+        // A branch of a single commit: its last commit is also its first.
+        assert_eq!(
+            plan(&app, "x1", Grip::Branch("main".into())),
+            rebase("fix", "main", "x1")
+        );
+        // Onto another branch than the current one.
+        assert_eq!(
+            plan(&app, "f1", Grip::Branch("fix".into())),
+            rebase("feature", "fix", "f1")
+        );
+    }
+
+    #[test]
+    fn last_commit_of_a_longer_branch_merges_it() {
+        let app = app();
+        assert_eq!(
+            plan(&app, "f2", Grip::Branch("main".into())),
+            Some(DropPlan::Integrate {
+                kind: Kind::Merge,
+                other: "feature".into(),
+                after: None,
+                branch: None,
+                moved: None,
+            })
+        );
+    }
+
+    #[test]
+    fn a_branch_already_merged_is_not_rebased() {
+        let app = app();
+        assert!(!matches!(
+            plan(&app, "d1", Grip::Branch("main".into())),
+            Some(DropPlan::Integrate {
+                kind: Kind::Rebase,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn rebasing_another_branch_names_it_in_the_command() {
+        let command = crate::git::integrate::start(
+            Path::new("/tmp/repo"),
+            Kind::Rebase,
+            "main",
+            None,
+            Some("feature"),
+            true,
+        );
+        assert!(
+            command.display().ends_with(
+                "rebase --autostash -X diff-algorithm=histogram -X ignore-space-change main feature"
+            ),
+            "{}",
+            command.display()
+        );
     }
 }

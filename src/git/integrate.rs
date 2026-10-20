@@ -29,12 +29,15 @@ pub enum Kind {
 
 /// The command that starts the integration of `other` into the current
 /// branch. A merge stops before committing so the result can be checked.
-/// A rebase given `after` only moves the commits after that one (`--onto`).
+/// A rebase given `after` only moves the commits after that one (`--onto`);
+/// given `branch`, it rebases that branch instead of the current one (git
+/// switches to it first).
 pub fn start(
     root: &Path,
     kind: Kind,
     other: &str,
     after: Option<&str>,
+    branch: Option<&str>,
     ignore_whitespace: bool,
 ) -> GitCommand {
     let mut args: Vec<&str> = CONFLICT_CONFIG.to_vec();
@@ -49,6 +52,9 @@ pub fn start(
     match (kind, after) {
         (Kind::Rebase, Some(after)) => args.extend(["--onto", other, after]),
         _ => args.push(other),
+    }
+    if let (Kind::Rebase, Some(branch)) = (kind, branch) {
+        args.push(branch);
     }
     GitCommand::new(args).in_dir(root)
 }
@@ -311,7 +317,15 @@ mod tests {
         let tmp = repo().await;
         let root = tmp.path();
         let git_dir = root.join(".git");
-        let r = run(super::start(root, Kind::Merge, "feature/x", None, true)).await;
+        let r = run(super::start(
+            root,
+            Kind::Merge,
+            "feature/x",
+            None,
+            None,
+            true,
+        ))
+        .await;
         assert!(!r.success());
         assert_eq!(operation_in_progress(&git_dir), Some(Operation::Merge));
         let (sides, _) = sides(root, &git_dir, Operation::Merge, Some("main")).await;
@@ -331,7 +345,7 @@ mod tests {
         let root = tmp.path();
         let git_dir = root.join(".git");
         ok(root, &["switch", "-q", "feature/x"]).await;
-        let r = run(super::start(root, Kind::Rebase, "main", None, true)).await;
+        let r = run(super::start(root, Kind::Rebase, "main", None, None, true)).await;
         assert!(!r.success());
         assert_eq!(operation_in_progress(&git_dir), Some(Operation::Rebase));
         let (sides, _) = sides(root, &git_dir, Operation::Rebase, None).await;

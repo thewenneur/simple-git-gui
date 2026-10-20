@@ -73,6 +73,8 @@ pub enum MenuAction {
     NewTag(String),
     ShowCommit(String),
     CompareWithFiles(String),
+    /// The project's files as they were at this commit.
+    Browse(String),
     CherryPick(String),
     Revert(String),
     Reword(String),
@@ -357,6 +359,7 @@ impl App {
                 Task::none()
             }
             MenuAction::ShowCommit(hash) => self.select_commit(hash),
+            MenuAction::Browse(hash) => self.viewer_update(super::viewer::Msg::Browse(hash)),
             MenuAction::CompareWithFiles(hash) => {
                 let ignore_ws = self.diff_options.ignore_whitespace;
                 if let Some(repo) = &mut self.repo {
@@ -854,6 +857,13 @@ impl App {
                         .color(p.muted),
                     );
                 }
+                head = head.push(
+                    button(centered(text(t!("viewer.browse")).size(12)))
+                        .padding([0, 10])
+                        .height(26)
+                        .on_press(Message::Viewer(super::viewer::Msg::Browse(hash.clone())))
+                        .style(style::secondary),
+                );
             }
             Comparison::Between { from, to } => {
                 head = head
@@ -941,6 +951,15 @@ impl App {
             ]
             .spacing(8)
             .align_y(Alignment::Center);
+            if !diff.binary && !diff.is_empty() {
+                toolbar = toolbar.push(
+                    button(centered(text(t!("viewer.open_large")).size(12)))
+                        .padding([0, 10])
+                        .height(26)
+                        .on_press(Message::Viewer(super::viewer::Msg::OpenCommitFile))
+                        .style(style::secondary),
+                );
+            }
             if let Comparison::Commit { hash, .. } = &details.comparison {
                 let deleted = details
                     .files
@@ -1109,6 +1128,13 @@ impl App {
                     t!("menu.compare_files").into_owned(),
                     "diff",
                     Some(MenuAction::CompareWithFiles(hash.clone())),
+                    false,
+                );
+                items = add(
+                    items,
+                    t!("menu.browse").into_owned(),
+                    "ls-tree",
+                    Some(MenuAction::Browse(hash.clone())),
                     false,
                 );
                 items = separator(items);
