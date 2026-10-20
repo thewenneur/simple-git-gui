@@ -39,7 +39,22 @@ cargo run --release -- ~/project    # opens this repository directly
   `.gitignore` or only for you in `.git/info/exclude`.
 - An explained **Git configuration** screen (identity, sync, conflicts, line endings),
   per repository or for every repository, showing the exact `git config` command.
-- Commit history of all branches.
+- **History and branches**: a branch graph of every branch, the details of a commit
+  (files and diffs), and the comparison of two commits (Ctrl+click) or of a commit with
+  your files.
+- Right-click a commit or a branch: create a branch or a tag, copy a commit onto your
+  branch (cherry-pick), undo a commit with a new one (revert), edit the last message,
+  restore a file as it was, merge, rebase, switch, delete a branch safely (a branch
+  whose work is not merged anywhere asks first). Each action shows its git command.
+- Double-click a branch to go onto it: your unsaved changes are set aside for that
+  branch (`auto/<branch>` stash) and come back when you return to it.
+- A banner when you are on an old commit outside any branch (detached HEAD), with
+  "create a branch here" and "go back".
+- **Merge and rebase assistant** that never says ours/theirs: each side carries its
+  branch name, the right way round for a merge and for a rebase. Fewer false conflicts
+  (`zdiff3`, `rerere`, histogram diff, whitespace ignored), and a merge is checked
+  before it is saved: blocks found twice because one side moved them are pointed out
+  and can be removed in one click.
 - **Git log panel**: every command run by your actions, its result and its duration.
   Read-only commands (`status`, `diff`, `log`...) and automatic refreshes are hidden
   by default. In advanced mode: a switch to show them, full outputs and a console to
@@ -58,11 +73,17 @@ The roadmap is in [docs/PLAN.md](docs/PLAN.md).
 - `src/git/repo.rs`: queries on a repository (opening, history, clone, operation in progress).
 - `src/git/ops.rs`: the commands of everyday actions (stage, commit, fetch, integrate, push, abort).
 - `src/git/diff.rs`: diff parsing and moved-line detection; `src/git/ignore.rs`: ignore rules.
-- `src/git/undo.rs`: snapshots of HEAD and the index, used to undo and redo actions.
+- `src/git/undo.rs`: snapshots of HEAD, the index and branches, used to undo and redo actions.
+- `src/git/graph.rs`: lanes of the branch graph; `src/git/branches.rs`: switching with
+  per-branch set-aside, branches, tags, cherry-pick, revert and commit contents.
+- `src/git/integrate.rs`: merge and rebase with fewer false conflicts, and the branch
+  name of each side; `src/git/conflict.rs`: conflict parsing and duplicated blocks.
 - `src/git/config.rs`: the settings of the Git configuration screen.
 - `src/app/mod.rs`: application state, messages and the main layout; `src/app/changes.rs`
   (changed files, diff, commit), `src/app/sync.rs` (get and send), `src/app/undo.rs`
-  (Ctrl+Z / Ctrl+Y), `src/app/config.rs` (Git configuration screen).
+  (Ctrl+Z / Ctrl+Y), `src/app/config.rs` (Git configuration screen), `src/app/history.rs`
+  (graph, commit details, menus and dialogs), `src/app/integrate.rs` (merge and rebase
+  assistant).
 - `src/ui/style.rs`: light and dark palettes, fonts and widget styles; `src/ui/icons.rs`: icons.
 - `assets/fonts/`: IBM Plex Sans and Mono (SIL OFL 1.1 license, see `OFL.txt`).
 - `locales/app.yml`: every UI text, in English and French side by side. A test checks that

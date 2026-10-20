@@ -42,6 +42,11 @@ repository, file status, history.
   - two commits selected → comparison;
   - safe branch deletion; detached HEAD banner with "create a branch here".
 
+Status: step 3a is done (wizards, false-conflict avoidance, duplicated blocks, graph,
+double-click switch with `auto/<branch>`, right-click menus, comparison, safe deletion,
+detached HEAD banner). Step 3b: the drag and drop gestures, and editing the message of
+an older commit that is not sent yet.
+
 ## 4. Submodules and trade-specific needs
 Submodules (add, update, sync, status), Git LFS and file locking for design binaries,
 `.gitignore` templates, portable Windows/macOS/Linux executables via
