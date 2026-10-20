@@ -81,6 +81,16 @@ pub struct Entry {
     /// A conflicted file the action marked as settled (`git add`): undoing
     /// puts the conflict back.
     pub resolved: Option<String>,
+    /// Commands that take the action back and redo it, for actions the
+    /// snapshot cannot capture (a lock on the server, a submodule's checkout).
+    pub inverse: Option<Inverse>,
+}
+
+/// The commands that undo and redo an action.
+#[derive(Debug, Clone)]
+pub struct Inverse {
+    pub undo: Vec<GitCommand>,
+    pub redo: Vec<GitCommand>,
 }
 
 impl Entry {
@@ -90,6 +100,7 @@ impl Entry {
             || self.file.as_ref().is_some_and(|f| f.before != f.after)
             || self.config.as_ref().is_some_and(|c| c.before != c.after)
             || self.refs.iter().any(|r| r.before != r.after)
+            || self.inverse.is_some()
     }
 
     /// What to do to go back (`undo`) or forward again.
@@ -124,6 +135,11 @@ impl Entry {
                 })
                 .collect(),
             resolved: self.resolved.clone(),
+            commands: self
+                .inverse
+                .as_ref()
+                .map(|i| if undo { i.undo.clone() } else { i.redo.clone() })
+                .unwrap_or_default(),
             undo,
         }
     }
@@ -144,6 +160,8 @@ pub struct Step {
     /// A file settled in a conflict: put back in conflict (undo) or marked
     /// settled again (redo).
     pub resolved: Option<String>,
+    /// Commands run last, from the action's [`Inverse`].
+    pub commands: Vec<GitCommand>,
     /// Going back (refs are restored after switching) or forward (before).
     pub undo: bool,
 }
@@ -235,6 +253,7 @@ pub async fn apply(root: PathBuf, step: Step) -> (Result<(), Refusal>, Vec<Comma
         config,
         refs,
         resolved,
+        commands: extra,
         undo,
     } = step;
     let (current, mut records) = snapshot(&root).await;
@@ -380,6 +399,15 @@ pub async fn apply(root: PathBuf, step: Step) -> (Result<(), Refusal>, Vec<Comma
             return (Err(Refusal::Failed(summary)), records);
         }
     }
+    for command in extra {
+        let record = run(command).await;
+        let ok = record.success();
+        let summary = record.error_summary();
+        records.push(record);
+        if !ok {
+            return (Err(Refusal::Failed(summary)), records);
+        }
+    }
     (Ok(()), records)
 }
 
@@ -430,6 +458,7 @@ mod tests {
             config: None,
             refs: Vec::new(),
             resolved: None,
+            inverse: None,
         }
     }
 
@@ -544,6 +573,7 @@ mod tests {
             }),
             refs: Vec::new(),
             resolved: None,
+            inverse: None,
         };
         undo(root, &entry).await.unwrap();
         let get = run(GitCommand::new(["config", "--local", "pull.rebase"]).in_dir(root)).await;
@@ -575,6 +605,7 @@ mod tests {
             config: None,
             refs: Vec::new(),
             resolved: None,
+            inverse: None,
         };
         assert!(entry.changed_something());
         undo(root, &entry).await.unwrap();
@@ -696,6 +727,7 @@ mod tests {
             config: None,
             refs: Vec::new(),
             resolved: Some("a.vhd".into()),
+            inverse: None,
         };
         let unmerged = || async { git(root, &["diff", "--name-only", "--diff-filter=U"]).await };
 

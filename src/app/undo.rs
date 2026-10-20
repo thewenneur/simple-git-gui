@@ -9,7 +9,7 @@ use iced::widget::row;
 use iced::window;
 
 use super::*;
-use crate::git::undo::{self, ConfigEdit, Entry, FileChange, Moves, RefChange, Refusal};
+use crate::git::undo::{self, ConfigEdit, Entry, FileChange, Inverse, Moves, RefChange, Refusal};
 
 /// The most actions kept for undo.
 const UNDO_LIMIT: usize = 50;
@@ -26,6 +26,8 @@ pub struct Undoable {
     pub watch_file: Option<PathBuf>,
     /// A conflicted file the action marks as settled.
     pub resolved: Option<String>,
+    /// Commands that undo and redo what the snapshot cannot see.
+    pub inverse: Option<Inverse>,
 }
 
 impl Undoable {
@@ -38,6 +40,7 @@ impl Undoable {
             refs: Vec::new(),
             watch_file: None,
             resolved: None,
+            inverse: None,
         }
     }
 }
@@ -167,6 +170,7 @@ impl App {
                     config: undoable.config,
                     refs,
                     resolved: undoable.resolved,
+                    inverse: undoable.inverse,
                 };
                 // Keep the action's own result last: it decides success.
                 let last = records.pop();
@@ -255,16 +259,14 @@ impl App {
                 self.error = Some(t!("error.undo_failed", detail = detail).into_owned());
             }
         }
-        let refresh = self.refresh(false);
-        if self
-            .repo
-            .as_ref()
-            .is_some_and(|r| r.section == Section::Config)
-        {
-            Task::batch([refresh, self.load_config()])
-        } else {
-            refresh
-        }
+        // An undone lock is only seen by asking the server again.
+        let section = match self.repo.as_ref().map(|r| r.section) {
+            Some(Section::Submodules | Section::Locks) => {
+                self.load_modules(super::modules::Reach::Locks)
+            }
+            _ => self.reload_section(),
+        };
+        Task::batch([self.refresh(false), section])
     }
 
     pub(super) fn undo_buttons<'a>(

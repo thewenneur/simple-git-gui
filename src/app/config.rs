@@ -143,6 +143,8 @@ impl App {
             page = page.push(container(card).width(Length::Fill).style(style::card));
         }
 
+        page = page.push(self.templates_card(repo, p));
+
         // The command a pending text edit will run, or a hint.
         let pending = self.config_drafts.iter().next().map(|(key, draft)| {
             let value = draft.trim();

@@ -490,6 +490,11 @@ pub fn dialog(theme: &Theme) -> container::Style {
 }
 
 /// A badge with only an outline (remote branches).
+/// A box with a colored outline on the card's surface.
+pub fn outlined_box(color: Color) -> impl Fn(&Theme) -> container::Style {
+    move |theme| boxed(palette(theme).surface, color, RADIUS)
+}
+
 pub fn outlined_badge(tint: Tint) -> impl Fn(&Theme) -> container::Style {
     move |theme| container::Style {
         background: Some(palette(theme).surface.into()),

@@ -117,6 +117,12 @@ impl GitCommand {
                 | "for-each-ref" | "ls-files" | "cat-file" | "merge-base" | "diff-tree",
             ) => true,
             Some("stash") => rest.first() == Some(&"list"),
+            Some("submodule") => rest.first() == Some(&"status"),
+            Some("lfs") => match rest.first() {
+                Some(&("version" | "ls-files" | "locks")) => true,
+                Some(&"track") => rest.len() == 1,
+                _ => false,
+            },
             Some("remote") => rest.iter().all(|a| *a == "-v"),
             Some("config") => rest
                 .iter()

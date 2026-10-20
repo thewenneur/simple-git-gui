@@ -50,6 +50,9 @@ Submodules (add, update, sync, status), Git LFS and file locking for design bina
 `.gitignore` templates, portable Windows/macOS/Linux executables via
 GitHub Actions.
 
+Status: done. Locks need a server with the Git LFS locking API (GitHub, GitLab, Gitea);
+lock owners are recognised by the server, or by `user.name` when it can't verify them.
+
 ## 5. Workspaces (git worktrees)
 Several branches checked out side by side, each in its own folder, sharing one
 repository: build or simulate one branch while editing another, without

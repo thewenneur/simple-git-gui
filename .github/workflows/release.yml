@@ -1,0 +1,101 @@
+name: Release
+
+# Portable executables: nothing to install besides Git itself.
+# - Windows: one .exe, with the C runtime linked in.
+# - macOS: a universal (Apple Silicon + Intel) Simple Git.app, zipped.
+# - Linux: the binary in a .tar.gz.
+# A pushed tag `v*` attaches them to a GitHub release; a manual run only
+# keeps them as workflow artifacts.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x86_64
+            os: windows-latest
+          - name: macos-universal
+            os: macos-latest
+          # The oldest supported runner, so the binary runs on older glibc.
+          - name: linux-x86_64
+            os: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - name: Version
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          RUSTFLAGS: -C target-feature=+crt-static
+        run: |
+          cargo build --release --locked
+          mkdir dist
+          cp target/release/simple-git-gui.exe "dist/simple-git-gui-${{ steps.version.outputs.version }}-windows-x86_64.exe"
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cargo build --release --locked --target aarch64-apple-darwin
+          cargo build --release --locked --target x86_64-apple-darwin
+          app="dist/Simple Git.app"
+          mkdir -p "$app/Contents/MacOS"
+          lipo -create -output "$app/Contents/MacOS/simple-git-gui" \
+            target/aarch64-apple-darwin/release/simple-git-gui \
+            target/x86_64-apple-darwin/release/simple-git-gui
+          sed "s/VERSION/${{ steps.version.outputs.version }}/" packaging/macos/Info.plist > "$app/Contents/Info.plist"
+          # Not notarized: an ad-hoc signature lets it run after "Open" in the Finder menu.
+          codesign --force --deep --sign - "$app"
+          cd dist && ditto -c -k --keepParent "Simple Git.app" "simple-git-gui-${{ steps.version.outputs.version }}-macos-universal.zip"
+          rm -rf "Simple Git.app"
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cargo build --release --locked
+          name="simple-git-gui-${{ steps.version.outputs.version }}-linux-x86_64"
+          mkdir -p "dist/$name"
+          cp target/release/simple-git-gui README.md "dist/$name/"
+          tar -C dist -czf "dist/$name.tar.gz" "$name"
+          rm -rf "dist/$name"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/*
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

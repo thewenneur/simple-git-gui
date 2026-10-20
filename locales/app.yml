@@ -1314,3 +1314,266 @@ drop.squash_button:
 drop.rebase_after_note:
   en: "Only the commits after %{commit} are moved; the ones before stay where they are."
   fr: "Seuls les commits après %{commit} sont déplacés ; ceux d'avant restent où ils sont."
+
+# Submodules, Git LFS locks and .gitignore templates
+nav.submodules:
+  en: "Submodules"
+  fr: "Sous-modules"
+nav.locks:
+  en: "Locked files"
+  fr: "Fichiers verrouillés"
+busy.submodule_download:
+  en: "Downloading %{path}…"
+  fr: "Téléchargement de %{path}…"
+busy.submodule_update:
+  en: "Updating %{path} from its server…"
+  fr: "Mise à jour de %{path} depuis son serveur…"
+busy.submodule_sync:
+  en: "Synchronising the submodules…"
+  fr: "Synchronisation des sous-modules…"
+busy.submodule_add:
+  en: "Adding %{url}…"
+  fr: "Ajout de %{url}…"
+busy.locking:
+  en: "Locking %{path}…"
+  fr: "Verrouillage de %{path}…"
+busy.unlocking:
+  en: "Releasing %{path}…"
+  fr: "Libération de %{path}…"
+undo.submodule_download:
+  en: "Download %{path}"
+  fr: "Télécharger %{path}"
+undo.submodule_update:
+  en: "Update %{path}"
+  fr: "Mettre à jour %{path}"
+undo.submodule_reset:
+  en: "Put %{path} back on its recorded commit"
+  fr: "Remettre %{path} sur son commit enregistré"
+undo.submodule_record:
+  en: "Record the commit of %{path}"
+  fr: "Enregistrer le commit de %{path}"
+undo.submodule_add:
+  en: "Add the submodule %{path}"
+  fr: "Ajouter le sous-module %{path}"
+undo.lock:
+  en: "Lock %{path}"
+  fr: "Verrouiller %{path}"
+undo.unlock:
+  en: "Release %{path}"
+  fr: "Libérer %{path}"
+undo.track:
+  en: "Store %{pattern} with Git LFS"
+  fr: "Stocker %{pattern} avec Git LFS"
+undo.template:
+  en: "Add the %{name} template to .gitignore"
+  fr: "Ajouter le modèle %{name} au .gitignore"
+submodules.title:
+  en: "Submodules"
+  fr: "Sous-modules"
+submodules.intro:
+  en: "Repositories included in this one, each pinned to a precise commit."
+  fr: "Des dépôts inclus dans celui-ci, chacun figé sur un commit précis."
+submodules.loading:
+  en: "Reading the submodules…"
+  fr: "Lecture des sous-modules…"
+submodules.sync_all:
+  en: "Sync all"
+  fr: "Tout synchroniser"
+submodules.add:
+  en: "Add a submodule"
+  fr: "Ajouter un sous-module"
+submodules.add_intro:
+  en: "The repository is downloaded into the folder and pinned on its current commit. It is saved with your next commit."
+  fr: "Le dépôt est téléchargé dans le dossier et figé sur son commit actuel. Il est enregistré avec votre prochain commit."
+submodules.add_url:
+  en: "Repository address"
+  fr: "Adresse du dépôt"
+submodules.add_url_placeholder:
+  en: "https://github.com/team/library.git"
+  fr: "https://github.com/equipe/bibliotheque.git"
+submodules.add_path:
+  en: "Folder"
+  fr: "Dossier"
+submodules.add_button:
+  en: "Add"
+  fr: "Ajouter"
+submodules.none:
+  en: "This repository has no submodules."
+  fr: "Ce dépôt n'a pas de sous-module."
+submodules.col_folder:
+  en: "Folder"
+  fr: "Dossier"
+submodules.col_state:
+  en: "State"
+  fr: "État"
+submodules.col_commit:
+  en: "Commit"
+  fr: "Commit"
+submodules.up_to_date:
+  en: "Up to date"
+  fr: "À jour"
+submodules.behind:
+  en: "%{count} new on the server"
+  fr: "%{count} nouveautés sur le serveur"
+submodules.dirty:
+  en: "Changed here, not saved"
+  fr: "Modifié ici, pas enregistré"
+submodules.moved:
+  en: "On another commit than the recorded one"
+  fr: "Sur un autre commit que celui enregistré"
+submodules.not_downloaded:
+  en: "Not downloaded yet"
+  fr: "Pas encore téléchargé"
+submodules.conflict:
+  en: "In conflict"
+  fr: "En conflit"
+submodules.details:
+  en: "Details"
+  fr: "Détails"
+submodules.hide_details:
+  en: "Hide"
+  fr: "Masquer"
+submodules.open:
+  en: "Open"
+  fr: "Ouvrir"
+submodules.download:
+  en: "Download"
+  fr: "Télécharger"
+submodules.update:
+  en: "Update"
+  fr: "Mettre à jour"
+submodules.see_changes:
+  en: "See the changes"
+  fr: "Voir les changements"
+submodules.reset:
+  en: "Go back"
+  fr: "Revenir"
+submodules.record:
+  en: "Record this commit"
+  fr: "Enregistrer ce commit"
+submodules.to_changes:
+  en: "Settle it"
+  fr: "Régler"
+submodules.pinned_by:
+  en: "Pinned by %{repo} on"
+  fr: "Figé par %{repo} sur"
+submodules.latest_on_server:
+  en: "Latest on the server"
+  fr: "Dernier sur le serveur"
+submodules.commit_subject:
+  en: "%{hash} « %{subject} »"
+  fr: "%{hash} « %{subject} »"
+submodules.update_explained:
+  en: "Update moves the submodule forward, then records this new point in %{repo}, so your colleagues get the same version."
+  fr: "Mettre à jour fait avancer le sous-module puis enregistre ce nouveau point dans %{repo}, pour que vos collègues reçoivent la même version."
+submodules.checking:
+  en: "Asking the servers what is new…"
+  fr: "Demande des nouveautés aux serveurs…"
+submodules.checked_hint:
+  en: "What is new on the servers was checked when this screen opened."
+  fr: "Les nouveautés des serveurs ont été vérifiées à l'ouverture de cet écran."
+submodules.check:
+  en: "Check again"
+  fr: "Vérifier à nouveau"
+submodules.inside:
+  en: "This is a submodule of %{parent}."
+  fr: "Ceci est un sous-module de %{parent}."
+submodules.back:
+  en: "Back to %{parent}"
+  fr: "Revenir à %{parent}"
+locks.title:
+  en: "Locked files"
+  fr: "Fichiers verrouillés"
+locks.intro:
+  en: "Binary files (schematics, layouts, PDF) can't be merged. Lock them before editing them."
+  fr: "Les fichiers binaires (schémas, maquettes, PDF) ne se fusionnent pas. Verrouillez-les avant de les modifier."
+locks.no_lfs:
+  en: "Git LFS is not installed on this computer. Install it from https://git-lfs.com to store and lock binary files."
+  fr: "Git LFS n'est pas installé sur cet ordinateur. Installez-le depuis https://git-lfs.com pour stocker et verrouiller les fichiers binaires."
+locks.no_hooks:
+  en: "Git LFS is not set up in this repository yet: large files won't be downloaded or sent."
+  fr: "Git LFS n'est pas encore activé dans ce dépôt : les gros fichiers ne seront ni téléchargés ni envoyés."
+locks.install_hooks:
+  en: "Set up"
+  fr: "Activer"
+locks.no_patterns:
+  en: "No file type is stored with Git LFS yet. Add one in « Locked files »."
+  fr: "Aucun type de fichier n'est encore stocké avec Git LFS. Ajoutez-en un dans « Fichiers verrouillés »."
+locks.asking:
+  en: "Asking the server for the locks…"
+  fr: "Demande des verrous au serveur…"
+locks.server_error:
+  en: "The server didn't give the locks: %{detail}"
+  fr: "Le serveur n'a pas donné les verrous : %{detail}"
+locks.no_files:
+  en: "No file stored with Git LFS yet."
+  fr: "Aucun fichier stocké avec Git LFS pour l'instant."
+locks.free:
+  en: "Free"
+  fr: "Libre"
+locks.lock:
+  en: "Lock"
+  fr: "Verrouiller"
+locks.unlock:
+  en: "Release"
+  fr: "Libérer"
+locks.by_you:
+  en: "Locked by you"
+  fr: "Verrouillé par vous"
+locks.by:
+  en: "Locked by %{owner}"
+  fr: "Verrouillé par %{owner}"
+locks.read_only:
+  en: "read-only"
+  fr: "lecture seule"
+locks.minutes:
+  en: "for %{count} min"
+  fr: "depuis %{count} min"
+locks.hours:
+  en: "for %{count} h"
+  fr: "depuis %{count} h"
+locks.days:
+  en: "for %{count} days"
+  fr: "depuis %{count} jours"
+locks.copy_name:
+  en: "Copy their name"
+  fr: "Copier son nom"
+locks.force_unlock:
+  en: "Force release"
+  fr: "Forcer la libération"
+locks.name_copied:
+  en: "%{name} copied."
+  fr: "%{name} copié."
+locks.more:
+  en: "%{count} more files"
+  fr: "%{count} autres fichiers"
+locks.tracked:
+  en: "Stored with Git LFS:"
+  fr: "Suivis par Git LFS :"
+lfs.title:
+  en: "Files stored with Git LFS"
+  fr: "Fichiers stockés avec Git LFS"
+lfs.intro:
+  en: "These file types are kept outside the history and can be locked. Add a type before committing its first file."
+  fr: "Ces types de fichiers sont gardés hors de l'historique et peuvent être verrouillés. Ajoutez un type avant d'enregistrer son premier fichier."
+lfs.placeholder:
+  en: "kicad_pcb, *.fig, docs/*.pdf"
+  fr: "kicad_pcb, *.fig, docs/*.pdf"
+lfs.track:
+  en: "Store with LFS"
+  fr: "Stocker avec LFS"
+lfs.commit_hint:
+  en: "The rule is written in .gitattributes: commit it so the whole team uses it."
+  fr: "La règle est écrite dans .gitattributes : enregistrez-la pour que toute l'équipe l'utilise."
+templates.title:
+  en: "Ready-made ignore rules"
+  fr: "Règles d'exclusion toutes prêtes"
+templates.intro:
+  en: "Add the rules of a tool to .gitignore so its build outputs and temporary files never end up in commits. Hover a tool to see its rules."
+  fr: "Ajoutez les règles d'un outil au .gitignore pour que ses fichiers générés et temporaires n'arrivent jamais dans les commits. Survolez un outil pour voir ses règles."
+templates.added:
+  en: "%{name} rules added to .gitignore."
+  fr: "Règles %{name} ajoutées au .gitignore."
+templates.already:
+  en: "The %{name} rules are already in .gitignore."
+  fr: "Les règles %{name} sont déjà dans le .gitignore."

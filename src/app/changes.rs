@@ -378,6 +378,7 @@ impl App {
             refs: Vec::new(),
             watch_file: None,
             resolved: None,
+            inverse: None,
         };
         self.perform(Action::Ignore, None, Some(undoable), commands)
     }
