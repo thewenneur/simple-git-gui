@@ -49,3 +49,21 @@ which gets colleagues' work first.
 Submodules (add, update, sync, status), Git LFS and file locking for design binaries,
 `.gitignore` templates, portable Windows/macOS/Linux executables via
 GitHub Actions.
+
+## 5. Workspaces (git worktrees)
+Several branches checked out side by side, each in its own folder, sharing one
+repository: build or simulate one branch while editing another, without
+switching back and forth or setting work aside.
+- A "Workspaces" screen listing every worktree (`git worktree list --porcelain`): folder,
+  branch, state (clean, modified, locked, missing folder), with "Open" to switch the
+  app to it.
+- "New workspace" from a branch or a commit (`git worktree add <folder> <branch>`, or
+  `-b <new-branch>`), with a suggested folder next to the repository.
+- Drag a branch from the tree view onto the Workspaces item to open it in a new one.
+- Remove (`git worktree remove`, refused while it has changes, `--force` in advanced
+  mode), prune stale entries (`git worktree prune`), lock/unlock a worktree on a
+  removable drive (`git worktree lock --reason`).
+- Explain why a branch can't be checked out here when another workspace already has it,
+  and offer to open that workspace instead.
+- Submodules in a new workspace are downloaded on request (`git submodule update --init`).
+- Undo with Ctrl+Z where possible (a removed workspace with no changes can be re-added).
