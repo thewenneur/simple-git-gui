@@ -1345,7 +1345,7 @@ fn display_url(url: &str) -> String {
     }
 }
 
-fn small_button<'a>(
+pub(super) fn small_button<'a>(
     label: String,
     message: Option<Message>,
     primary: bool,

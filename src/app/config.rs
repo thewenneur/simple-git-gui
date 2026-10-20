@@ -125,7 +125,9 @@ impl App {
         .spacing(16)
         .align_y(Alignment::End);
 
-        let mut page = column![header].spacing(16).max_width(1080);
+        let mut page = column![header, self.remotes_card(repo, p)]
+            .spacing(16)
+            .max_width(1080);
         for (section, settings) in config::SECTIONS {
             let mut card = column![
                 container(
