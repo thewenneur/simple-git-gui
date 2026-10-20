@@ -44,8 +44,10 @@ cargo run --release -- ~/project    # opens this repository directly
   Read-only commands (`status`, `diff`, `log`...) and automatic refreshes are hidden
   by default. In advanced mode: a switch to show them, full outputs and a console to
   type your own git commands.
-- Light on memory (about 25 MB): the interface is drawn by the CPU (iced's tiny-skia
-  renderer), so no GPU driver is loaded.
+- Light on memory: on Windows and Linux the interface is drawn by the CPU (iced's
+  tiny-skia renderer, about 25 MB) since the GPU driver alone would add 100+ MB; on
+  macOS it is drawn by the GPU (Metal), which is cheaper there than keeping CPU-drawn
+  Retina frames. Force either with `SIMPLE_GIT_GPU=1` (GPU) or `SIMPLE_GIT_GPU=0` (CPU).
 - Git can never freeze the interface: every command runs in the background, without a
   terminal or an editor, and is stopped after a maximum delay.
 
