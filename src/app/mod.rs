@@ -13,6 +13,7 @@ mod modules;
 mod remotes;
 mod sync;
 mod undo;
+mod viewer;
 mod worktrees;
 
 use std::collections::HashMap;
@@ -99,6 +100,8 @@ pub struct App {
     opening: Option<PathBuf>,
     /// The workspace that has the branch git refused to switch to.
     elsewhere: Option<PathBuf>,
+    /// A file or the project at a commit, shown over the whole window.
+    viewer: Option<viewer::Viewer>,
 }
 
 struct OpenRepo {
@@ -347,6 +350,7 @@ pub enum Message {
     Modules(modules::Msg),
     Remotes(remotes::Msg),
     Worktrees(worktrees::Msg),
+    Viewer(viewer::Msg),
 }
 
 impl App {
@@ -780,6 +784,9 @@ impl App {
                 Task::none()
             }
             Message::Escape => {
+                if self.history_dialog.is_none() && self.context_menu.is_none() {
+                    self.viewer = None;
+                }
                 self.context_menu = None;
                 if let Some(repo) = &mut self.repo {
                     repo.history.drag = None;
@@ -900,6 +907,7 @@ impl App {
             Message::Modules(msg) => self.modules_update(msg),
             Message::Remotes(msg) => self.remotes_update(msg),
             Message::Worktrees(msg) => self.worktrees_update(msg),
+            Message::Viewer(msg) => self.viewer_update(msg),
         }
     }
 
@@ -1268,6 +1276,16 @@ impl App {
                 .as_ref()
                 .map(|prompt| self.integration_prompt_view(prompt, p))
         };
+        // The large view takes the whole window: nothing is drawn under it.
+        let page: Element<'_, Message> = match self.open_viewer() {
+            Some(viewer) => container(self.viewer_view(viewer, p))
+                .padding(16)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .style(style::page)
+                .into(),
+            None => page.into(),
+        };
         if let Some(dialog) = dialog {
             return stack![
                 page,
@@ -1298,7 +1316,7 @@ impl App {
         if let Some(overlay) = self.drag_overlay(p) {
             return stack![page, overlay].into();
         }
-        page.into()
+        page
     }
 
     fn top_bar(&self, p: &'static Palette) -> Element<'_, Message> {

@@ -39,7 +39,9 @@ cargo run --release -- ~/project    # opens this repository directly
 - See the current branch, how it stands against the server, and the changed files, in
   plain words, with the git notation in advanced mode.
 - Readable diffs: unified or side by side, whitespace-only changes hidden, moved lines
-  shown as moved instead of deleted and re-added.
+  shown as moved instead of deleted and re-added, code colored by language (VHDL,
+  Verilog, Tcl/XDC, C, Python...). **Open large** shows a diff over the whole window,
+  optionally the whole file with its changes.
 - Stage a whole file or a single block, write the message and commit.
 - **Get** and **Send**: fetch then integrate (rebase by default, or merge), and a guided
   send that shows what will go to the server before pushing. A conflict can be aborted
@@ -54,7 +56,8 @@ cargo run --release -- ~/project    # opens this repository directly
   remove and test a server, each with its command shown and undoable with Ctrl+Z.
 - **History and branches**: a branch graph of every branch, the details of a commit
   (files and diffs), and the comparison of two commits (Ctrl+click) or of a commit with
-  your files.
+  your files. **Browse the project at this commit** shows its folders and the content of
+  any file as it was then.
 - Right-click a commit or a branch: create a branch or a tag, copy a commit onto your
   branch (cherry-pick), undo a commit with a new one (revert), edit the last message,
   restore a file as it was, merge, rebase, switch, delete a branch safely (a branch
@@ -130,8 +133,9 @@ The roadmap is in [docs/PLAN.md](docs/PLAN.md).
   assistant), `src/app/dragdrop.rs` (drag and drop gestures and their confirmation),
   `src/app/modules.rs` (submodules, locked files and `.gitignore` templates),
   `src/app/remotes.rs` (servers card and new repository form), `src/app/worktrees.rs`
-  (workspaces screen).
-- `src/ui/style.rs`: light and dark palettes, fonts and widget styles; `src/ui/icons.rs`: icons.
+  (workspaces screen), `src/app/viewer.rs` (large diff view, project at a commit).
+- `src/ui/style.rs`: light and dark palettes, fonts and widget styles; `src/ui/icons.rs`: icons;
+  `src/ui/syntax.rs`: syntax highlighting.
 - `assets/fonts/`: IBM Plex Sans and Mono (SIL OFL 1.1 license, see `OFL.txt`).
 - `locales/app.yml`: every UI text, in English and French side by side. A test checks that
   every key exists in both languages and that every key used in the code exists.
