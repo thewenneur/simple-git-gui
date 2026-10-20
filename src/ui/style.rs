@@ -673,16 +673,13 @@ pub fn dashed_badge(tint: Tint) -> impl Fn(&Theme) -> container::Style {
     }
 }
 
-/// A floating menu (right-click).
+/// A floating menu (right-click). No soft shadow: the CPU renderer draws
+/// shadows outside the area it repaints, so the menu darkened a little more
+/// at each hover.
 pub fn popup(theme: &Theme) -> container::Style {
     let p = palette(theme);
     container::Style {
         text_color: Some(p.text),
-        shadow: Shadow {
-            color: Color::from_rgba8(0x18, 0x20, 0x2B, 0.18),
-            offset: iced::Vector::new(0.0, 6.0),
-            blur_radius: 18.0,
-        },
         ..boxed(p.surface, p.input_border, 8.0)
     }
 }

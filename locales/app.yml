@@ -359,9 +359,21 @@ changes.stage_all:
 commit.title:
   en: "Describe this change"
   fr: "Décrire ce changement"
-commit.placeholder:
-  en: "What did you change, and why?"
-  fr: "Qu'avez-vous changé, et pourquoi ?"
+commit.summary_placeholder:
+  en: "Summary: what changed, in a few words"
+  fr: "Titre : ce qui change, en quelques mots"
+commit.description_placeholder:
+  en: "Description (optional): why, and what a reader should know"
+  fr: "Description (facultative) : pourquoi, et ce qu'il faut savoir"
+commit.summary_long:
+  en: "Over 50 characters: lists will shorten the title. Details go in the description."
+  fr: "Plus de 50 caractères : les listes raccourciront le titre. Les détails vont dans la description."
+commit.summary_too_long:
+  en: "Over 72 characters: most Git tools cut the title. Keep it short."
+  fr: "Plus de 72 caractères : la plupart des outils Git coupent le titre. Faites court."
+commit.body_long_lines:
+  en: "Some description lines are over 72 characters; terminals will not wrap them."
+  fr: "Certaines lignes de la description dépassent 72 caractères ; les terminaux ne les replieront pas."
 commit.button_none:
   en: "Save (include files first)"
   fr: "Enregistrer (incluez d'abord des fichiers)"

@@ -9,6 +9,7 @@ mod config;
 mod dragdrop;
 mod history;
 mod integrate;
+mod message;
 mod modules;
 mod remotes;
 mod sync;
@@ -117,7 +118,7 @@ struct OpenRepo {
     numstat_unstaged: HashMap<String, (u32, u32)>,
     selected: Option<changes::Selection>,
     diff: Option<changes::DiffView>,
-    commit_message: text_editor::Content,
+    commit_message: message::Draft,
     ignore_menu: Option<changes::IgnoreMenu>,
     undo: undo::UndoStacks,
     config: Option<crate::git::config::Values>,
@@ -154,7 +155,7 @@ impl OpenRepo {
             numstat_unstaged: HashMap::new(),
             selected: None,
             diff: None,
-            commit_message: text_editor::Content::new(),
+            commit_message: message::Draft::default(),
             ignore_menu: None,
             undo: undo::UndoStacks::default(),
             config: None,
@@ -261,7 +262,7 @@ pub enum Message {
     SetIgnoreWhitespace(bool),
     SetShowMoves(bool),
     SetSideBySide(bool),
-    CommitEdit(text_editor::Action),
+    CommitEdit(message::Edit),
     Commit,
     ActionDone(
         Action,
@@ -318,10 +319,12 @@ pub enum Message {
     OpenMenu(history::MenuTarget),
     CloseMenu,
     MenuAction(history::MenuAction),
+    /// The full message of the commit to reword.
+    RewordLoaded(String, Box<CommandRecord>),
     SwitchTo(Target),
     DialogName(String),
     DialogSwitch(bool),
-    DialogEdit(text_editor::Action),
+    DialogEdit(message::Edit),
     ConfirmDialog,
     CloseDialog,
     RestoreFile(String, String),
@@ -657,12 +660,12 @@ impl App {
                 self.side_by_side = on;
                 Task::none()
             }
-            Message::CommitEdit(action) => {
-                if let Some(repo) = &mut self.repo {
-                    repo.commit_message.perform(action);
-                }
-                Task::none()
-            }
+            Message::CommitEdit(edit) => match &mut self.repo {
+                Some(repo) => repo
+                    .commit_message
+                    .perform(edit, changes::DESCRIPTION_INPUT),
+                None => Task::none(),
+            },
             Message::Commit => self.commit(),
             Message::ActionDone(action, records, entry) => {
                 self.action_done(action, records, entry.map(|e| *e))
@@ -825,6 +828,7 @@ impl App {
                 Task::none()
             }
             Message::MenuAction(action) => self.menu_action(action),
+            Message::RewordLoaded(commit, record) => self.reword_message(commit, *record),
             Message::SwitchTo(target) => self.switch_to(target),
             Message::DialogName(value) => {
                 match &mut self.history_dialog {
@@ -840,12 +844,12 @@ impl App {
                 }
                 Task::none()
             }
-            Message::DialogEdit(action) => {
-                if let Some(history::Dialog::Reword { content, .. }) = &mut self.history_dialog {
-                    content.perform(action);
+            Message::DialogEdit(edit) => match &mut self.history_dialog {
+                Some(history::Dialog::Reword { draft, .. }) => {
+                    draft.perform(edit, history::REWORD_DESCRIPTION)
                 }
-                Task::none()
-            }
+                _ => Task::none(),
+            },
             Message::ConfirmDialog => self.confirm_dialog(),
             Message::CloseDialog => {
                 self.history_dialog = None;
@@ -1016,7 +1020,7 @@ impl App {
             None => match action {
                 Action::Commit => {
                     if let Some(repo) = &mut self.repo {
-                        repo.commit_message = text_editor::Content::new();
+                        repo.commit_message = message::Draft::default();
                     }
                 }
                 Action::Push => {
