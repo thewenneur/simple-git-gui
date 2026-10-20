@@ -15,13 +15,16 @@ First release.
 - Changed files in plain words, readable diffs (unified or side by side, whitespace-only
   changes hidden, moved lines shown as moved, code colored for VHDL, Verilog, Tcl/XDC,
   C, Python and more), a large diff view and the whole file with its changes.
-- Stage a file or a single block, commit, **Get** (fetch then rebase or merge) and a
+- Stage a file or a single block, commit with a short summary and an optional
+  description, **Get** (fetch then rebase or merge) and a
   guided **Send** that gets first and shows what will go to the server.
 - Ctrl+Z / Ctrl+Y on every action until the next send.
 - Ignore a file, an extension or a folder from its menu, shared or only for you, and
   ready-made `.gitignore` rules for Vivado, Quartus, ModelSim/Questa, GHDL/NVC, KiCad,
   Office, VS Code, Python and Rust.
-- An explained Git configuration screen and a servers (remotes) card.
+- An explained Git configuration screen (including where server passwords are kept) and
+  a servers (remotes) card. One click fixes the line endings of files already saved
+  when Windows and Linux endings got mixed.
 - History and branches: a graph of every branch, commit details, comparing two commits,
   browsing the project at a commit, and drag and drop to merge, move (rebase),
   cherry-pick, reorder or squash commits, each confirmed with its git command.
