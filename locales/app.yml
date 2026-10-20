@@ -122,8 +122,11 @@ journal.hint:
   en: "every action of the application maps to these commands"
   fr: "chaque action de l'application correspond à ces commandes"
 journal.show_background:
-  en: "Show automatic refreshes"
-  fr: "Afficher les actualisations automatiques"
+  en: "Show read-only commands and refreshes"
+  fr: "Afficher les lectures et actualisations"
+journal.empty:
+  en: "The commands of your actions will appear here."
+  fr: "Les commandes de vos actions s'afficheront ici."
 journal.clear:
   en: "Clear"
   fr: "Vider"

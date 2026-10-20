@@ -437,7 +437,7 @@ impl App {
                         return Task::none();
                     }
                 };
-                let mut command = GitCommand::new(args).network();
+                let mut command = GitCommand::new(args).network().typed();
                 if let Some(repo) = &self.repo {
                     command = command.in_dir(&repo.paths.root);
                 }
@@ -658,7 +658,7 @@ impl App {
     fn visible_journal(&self) -> impl Iterator<Item = &CommandRecord> {
         self.journal
             .iter()
-            .filter(|r| self.show_background || !r.command.background)
+            .filter(|r| self.show_background || !r.command.hidden_by_default())
     }
 
     fn open(&mut self, dir: PathBuf) -> Task<Message> {
@@ -1255,8 +1255,13 @@ impl App {
 
         if !self.journal_collapsed {
             let mut entries = column![].spacing(2);
+            let mut empty = true;
             for record in self.visible_journal() {
                 entries = entries.push(self.journal_entry(record));
+                empty = false;
+            }
+            if empty {
+                entries = entries.push(text(t!("journal.empty")).size(12).color(jc::HINT));
             }
             panel = panel.push(hline(style::journal_separator)).push(
                 scrollable(entries.padding([8, 16]))

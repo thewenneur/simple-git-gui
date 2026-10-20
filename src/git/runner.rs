@@ -30,6 +30,8 @@ pub struct GitCommand {
     pub timeout: Duration,
     /// Background commands (periodic refresh) are hidden from the journal by default.
     pub background: bool,
+    /// Typed by the user in the git console: always shown in the journal.
+    pub typed: bool,
     /// Data written to git's standard input (e.g. a patch for `git apply -`).
     pub input: Option<String>,
     /// For a file edit the app does itself (not a git call): the equivalent
@@ -48,6 +50,7 @@ impl GitCommand {
             cwd: None,
             timeout: LOCAL_TIMEOUT,
             background: false,
+            typed: false,
             input: None,
             shell: None,
         }
@@ -71,6 +74,47 @@ impl GitCommand {
     pub fn background(mut self) -> Self {
         self.background = true;
         self
+    }
+
+    pub fn typed(mut self) -> Self {
+        self.typed = true;
+        self
+    }
+
+    /// Whether the journal hides this command unless the user asks to see
+    /// automatic refreshes and read-only commands.
+    pub fn hidden_by_default(&self) -> bool {
+        !self.typed && (self.background || self.is_query())
+    }
+
+    /// Whether the command only reads the repository (`status`, `diff`,
+    /// `log`...), as opposed to an action that changes something.
+    pub fn is_query(&self) -> bool {
+        if self.shell.is_some() {
+            return false;
+        }
+        let mut args = self.args.iter().map(String::as_str);
+        let sub = loop {
+            match args.next() {
+                Some("-c" | "-C") => {
+                    args.next();
+                }
+                other => break other,
+            }
+        };
+        let rest: Vec<&str> = args.collect();
+        match sub {
+            Some(
+                "--version" | "status" | "log" | "diff" | "show" | "rev-parse" | "rev-list"
+                | "for-each-ref" | "ls-files" | "cat-file" | "merge-base",
+            ) => true,
+            Some("remote") => rest.iter().all(|a| *a == "-v"),
+            Some("config") => rest
+                .iter()
+                .any(|a| matches!(*a, "--get" | "--get-all" | "--get-regexp" | "--list" | "-l")),
+            Some("symbolic-ref") => rest.iter().filter(|a| !a.starts_with('-')).count() <= 1,
+            _ => false,
+        }
     }
 
     /// The command as a user would type it in a terminal.
@@ -317,5 +361,32 @@ mod tests {
         cmd.timeout = Duration::from_millis(200);
         let record = run(cmd).await;
         assert_eq!(record.outcome, Outcome::TimedOut);
+    }
+
+    #[test]
+    fn hides_read_only_commands_by_default() {
+        let hidden = |args: &[&str]| GitCommand::new(args.iter().copied()).hidden_by_default();
+        for args in [
+            &["status", "--porcelain=v2"][..],
+            &["diff", "--numstat"],
+            &["log", "-n", "2"],
+            &["remote"],
+            &["config", "--get", "pull.rebase"],
+            &["symbolic-ref", "-q", "HEAD"],
+            &["-c", "x=y", "rev-parse", "HEAD"],
+        ] {
+            assert!(hidden(args), "{args:?}");
+        }
+        for args in [
+            &["commit", "-m", "x"][..],
+            &["remote", "add", "origin", "url"],
+            &["config", "--local", "user.name", "Lea"],
+            &["symbolic-ref", "HEAD", "refs/heads/main"],
+            &["push"],
+        ] {
+            assert!(!hidden(args), "{args:?}");
+        }
+        assert!(!GitCommand::new(["log"]).typed().hidden_by_default());
+        assert!(GitCommand::new(["commit"]).background().hidden_by_default());
     }
 }
