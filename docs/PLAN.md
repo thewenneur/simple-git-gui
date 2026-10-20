@@ -77,6 +77,12 @@ switching back and forth or setting work aside.
 - Submodules in a new workspace are downloaded on request (`git submodule update --init`).
 - Undo with Ctrl+Z where possible (a removed workspace with no changes can be re-added).
 
+Status: done. Creating, removing, locking and unlocking are undone with Ctrl+Z; a new
+branch created with a workspace is deleted on undo only if no commit was added to it.
+Not undoable: forced removal (the changes are gone), prune, and a workspace whose
+submodules were downloaded (git refuses to remove it without `--force`). Switching to a
+branch held by another workspace is explained before anything runs.
+
 ## 6. Interactive tutorial
 A guided tour on first launch, replayable at any time from the help menu
 ("Replay the tutorial") and from the start screen.

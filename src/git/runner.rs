@@ -118,6 +118,7 @@ impl GitCommand {
             ) => true,
             Some("stash") => rest.first() == Some(&"list"),
             Some("submodule") => rest.first() == Some(&"status"),
+            Some("worktree") => rest.first() == Some(&"list"),
             Some("lfs") => match rest.first() {
                 Some(&("version" | "ls-files" | "locks")) => true,
                 Some(&"track") => rest.len() == 1,

@@ -1705,3 +1705,176 @@ repo.not_a_repo_create:
 remotes.incomplete_name:
   en: "Type a new name that is not used yet."
   fr: "Indiquez un nouveau nom, pas encore utilisé."
+
+# Workspaces (git worktrees)
+nav.workspaces:
+  en: "Workspaces"
+  fr: "Espaces de travail"
+busy.workspace_add:
+  en: "Creating the workspace %{folder}…"
+  fr: "Création de l'espace de travail %{folder}…"
+busy.workspace_submodules:
+  en: "Downloading the submodules of %{folder}…"
+  fr: "Téléchargement des sous-modules de %{folder}…"
+undo.workspace_add:
+  en: "Create the workspace %{folder}"
+  fr: "Créer l'espace de travail %{folder}"
+undo.workspace_remove:
+  en: "Remove the workspace %{folder}"
+  fr: "Supprimer l'espace de travail %{folder}"
+undo.workspace_lock:
+  en: "Lock the workspace %{folder}"
+  fr: "Verrouiller l'espace de travail %{folder}"
+undo.workspace_unlock:
+  en: "Unlock the workspace %{folder}"
+  fr: "Déverrouiller l'espace de travail %{folder}"
+drop.label_workspace:
+  en: "Open %{what} in a new workspace"
+  fr: "Ouvrir %{what} dans un nouvel espace de travail"
+drop.label_workspace_commit:
+  en: "Open commit %{commit} in a new workspace"
+  fr: "Ouvrir le commit %{commit} dans un nouvel espace de travail"
+workspaces.title:
+  en: "Workspaces (git worktree)"
+  fr: "Espaces de travail (git worktree)"
+workspaces.intro:
+  en: "Each workspace is a folder with its own branch, sharing this repository's history: work on two branches at once without setting your changes aside."
+  fr: "Chaque espace de travail est un dossier avec sa propre branche, qui partage l'historique de ce dépôt : travaillez sur deux branches à la fois sans mettre vos modifications de côté."
+workspaces.loading:
+  en: "Reading the workspaces…"
+  fr: "Lecture des espaces de travail…"
+workspaces.new:
+  en: "New workspace"
+  fr: "Nouvel espace de travail"
+workspaces.prune:
+  en: "Forget missing folders"
+  fr: "Oublier les dossiers disparus"
+workspaces.main:
+  en: "main folder"
+  fr: "dossier principal"
+workspaces.bare:
+  en: "No files (bare repository)"
+  fr: "Aucun fichier (dépôt nu)"
+workspaces.detached:
+  en: "Commit %{commit}, outside any branch"
+  fr: "Commit %{commit}, hors de toute branche"
+workspaces.missing:
+  en: "Folder missing"
+  fr: "Dossier introuvable"
+workspaces.changes:
+  en: "%{count} changed file(s)"
+  fr: "%{count} fichier(s) modifié(s)"
+workspaces.clean:
+  en: "Nothing changed"
+  fr: "Rien de modifié"
+workspaces.locked:
+  en: "Locked"
+  fr: "Verrouillé"
+workspaces.locked_reason:
+  en: "Locked: %{reason}"
+  fr: "Verrouillé : %{reason}"
+workspaces.here:
+  en: "You are here"
+  fr: "Vous êtes ici"
+workspaces.open:
+  en: "Open"
+  fr: "Ouvrir"
+workspaces.open_that:
+  en: "Open that workspace"
+  fr: "Ouvrir cet espace de travail"
+workspaces.download_submodules:
+  en: "Download submodules"
+  fr: "Télécharger les sous-modules"
+workspaces.lock:
+  en: "Lock"
+  fr: "Verrouiller"
+workspaces.unlock:
+  en: "Unlock"
+  fr: "Déverrouiller"
+workspaces.remove:
+  en: "Remove"
+  fr: "Supprimer"
+workspaces.force_remove:
+  en: "Remove…"
+  fr: "Supprimer…"
+workspaces.remove_refused:
+  en: "This workspace has changes not committed: commit them or remove them first (in advanced mode, it can be removed anyway)."
+  fr: "Cet espace de travail a des modifications non commitées : commitez-les ou retirez-les d'abord (en mode avancé, il peut être supprimé quand même)."
+workspaces.force_intro:
+  en: "The changes in %{folder} (%{count} file(s)) will be lost for good (git worktree remove --force). This can't be undone."
+  fr: "Les modifications de %{folder} (%{count} fichier(s)) seront perdues définitivement (git worktree remove --force). Impossible d'annuler."
+workspaces.force_button:
+  en: "Remove and lose the changes"
+  fr: "Supprimer et perdre les modifications"
+workspaces.lock_intro:
+  en: "A locked workspace is never forgotten by git, even while its folder can't be reached (a USB drive, a network share). Say why, for your colleagues:"
+  fr: "Git n'oublie jamais un espace de travail verrouillé, même quand son dossier est inaccessible (clé USB, partage réseau). Indiquez pourquoi, pour vos collègues :"
+workspaces.lock_placeholder:
+  en: "On the USB drive"
+  fr: "Sur la clé USB"
+workspaces.drag_hint:
+  en: "Tip: drag a branch or a commit onto « Workspaces » in the side bar to open it in a new workspace."
+  fr: "Astuce : glissez une branche ou un commit sur « Espaces de travail » dans la barre latérale pour l'ouvrir dans un nouvel espace de travail."
+workspaces.form_intro:
+  en: "A new folder is created with the files of what you choose. The repository and its history stay shared."
+  fr: "Un nouveau dossier est créé avec les fichiers de ce que vous choisissez. Le dépôt et son historique restent partagés."
+workspaces.kind_branch:
+  en: "A branch"
+  fr: "Une branche"
+workspaces.kind_new_branch:
+  en: "A new branch"
+  fr: "Une nouvelle branche"
+workspaces.kind_commit:
+  en: "A commit"
+  fr: "Un commit"
+workspaces.branch:
+  en: "Branch"
+  fr: "Branche"
+workspaces.branch_placeholder:
+  en: "Choose a branch"
+  fr: "Choisissez une branche"
+workspaces.new_name:
+  en: "Name of the new branch"
+  fr: "Nom de la nouvelle branche"
+workspaces.starts_at:
+  en: "Starts from (branch or commit)"
+  fr: "Part de (branche ou commit)"
+workspaces.commit:
+  en: "Commit"
+  fr: "Commit"
+workspaces.folder:
+  en: "Folder"
+  fr: "Dossier"
+workspaces.choose:
+  en: "Choose…"
+  fr: "Choisir…"
+workspaces.pick_folder:
+  en: "Where to put the workspace"
+  fr: "Où placer l'espace de travail"
+workspaces.with_submodules:
+  en: "Also download the submodules (git submodule update --init --recursive)"
+  fr: "Télécharger aussi les sous-modules (git submodule update --init --recursive)"
+workspaces.already_open:
+  en: "%{branch} is already open in the workspace %{folder}: a branch can only be in one workspace at a time."
+  fr: "%{branch} est déjà ouverte dans l'espace de travail %{folder} : une branche ne peut être que dans un seul espace de travail à la fois."
+workspaces.folder_not_empty:
+  en: "This folder already exists and is not empty: choose another one."
+  fr: "Ce dossier existe déjà et n'est pas vide : choisissez-en un autre."
+workspaces.bad_name:
+  en: "This name can't be a branch name (no spaces, no ~ ^ : ? * [ \\ or ..)."
+  fr: "Ce nom ne peut pas être un nom de branche (pas d'espace, ni ~ ^ : ? * [ \\ ou ..)."
+workspaces.create:
+  en: "Create"
+  fr: "Créer"
+workspaces.unknown_start:
+  en: "« %{at} » is neither a branch nor a commit of this repository."
+  fr: "« %{at} » n'est ni une branche ni un commit de ce dépôt."
+workspaces.switch_refused:
+  en: "This branch is already open in the workspace %{folder}. A branch can only be in one workspace at a time: open that workspace to work on it."
+  fr: "Cette branche est déjà ouverte dans l'espace de travail %{folder}. Une branche ne peut être que dans un seul espace de travail à la fois : ouvrez cet espace pour y travailler."
+workspaces.force_intro_submodules:
+  en: "The folder %{folder} and its downloaded submodules will be deleted (git worktree remove --force). Changes inside the submodules would be lost."
+  fr: "Le dossier %{folder} et ses sous-modules téléchargés seront supprimés (git worktree remove --force). Les modifications faites dans les sous-modules seraient perdues."
+workspaces.remove_submodules:
+  en: "Git only removes a workspace whose submodules were downloaded when forced: turn on advanced mode and use « Remove… »."
+  fr: "Git ne supprime un espace de travail dont les sous-modules sont téléchargés qu'en forçant : activez le mode avancé et utilisez « Supprimer… »."
