@@ -1,6 +1,6 @@
 # Plan
 
-Audience: a hardware/VHDL team and a design team who don't know Git, plus experienced
+Audience: a hardware team and a design team who don't know Git, plus experienced
 users. General rule: guided choices never hide the matching git command. The interface is
 in English and French.
 Target visual: the approved wireframes (https://claude.ai/artifact/P4D9EvkYgPTQtZDBw82EjJ).
