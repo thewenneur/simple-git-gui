@@ -7,6 +7,7 @@ extern crate rust_i18n;
 mod app;
 mod git;
 mod i18n;
+mod ui;
 
 i18n!("locales", fallback = "en");
 
@@ -22,7 +23,14 @@ fn main() -> iced::Result {
         App::view,
     )
     .title(App::title)
+    .theme(App::theme)
     .subscription(App::subscription)
-    .window_size((1100.0, 760.0))
+    .settings(iced::Settings {
+        fonts: ui::style::FONT_FILES.iter().map(|f| (*f).into()).collect(),
+        default_font: ui::style::SANS,
+        default_text_size: 14.into(),
+        ..iced::Settings::default()
+    })
+    .window_size((1280.0, 800.0))
     .run()
 }

@@ -22,6 +22,8 @@ cargo run --release -- ~/projet  # ouvre directement ce dépôt
 ## Ce que fait la version actuelle
 
 - Interface en français et en anglais (langue du système par défaut, bouton FR/EN).
+- Style des maquettes validées : polices IBM Plex intégrées, thème clair et sombre qui suit
+  le système (forçable avec `SIMPLE_GIT_THEME=dark` ou `light`).
 - Ouvrir un dépôt existant ou en cloner un (sous-modules compris).
 - Voir la branche courante, son état par rapport au serveur et les fichiers modifiés,
   en clair avec la notation git en mode avancé.
@@ -37,6 +39,8 @@ cargo run --release -- ~/projet  # ouvre directement ce dépôt
 - `src/git/status.rs` : lecture de `git status --porcelain=v2`.
 - `src/git/repo.rs` : requêtes sur un dépôt (ouverture, historique, clone, opération en cours).
 - `src/app.rs` : état de l'application et écrans.
+- `src/ui/style.rs` : palettes claire et sombre, polices et styles des composants ; `src/ui/icons.rs` : icônes.
+- `assets/fonts/` : IBM Plex Sans et Mono (licence SIL OFL 1.1, voir `OFL.txt`).
 - `locales/app.yml` : tous les textes, en anglais et en français côte à côte. Un test vérifie
   que chaque clé existe dans les deux langues et que chaque clé utilisée dans le code existe.
 

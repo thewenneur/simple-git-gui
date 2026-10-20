@@ -41,12 +41,6 @@ dialog.clone_parent:
   en: "Folder where the copy will be created"
   fr: "Dossier où créer la copie"
 
-toolbar.refresh:
-  en: "Refresh"
-  fr: "Rafraîchir"
-toolbar.close:
-  en: "Close repository"
-  fr: "Fermer le dépôt"
 toolbar.advanced:
   en: "Advanced mode"
   fr: "Mode avancé"
@@ -85,12 +79,6 @@ welcome.git_searching:
   en: "Looking for git…"
   fr: "Recherche de git…"
 
-repo.tab_changes:
-  en: "Changes"
-  fr: "Modifications"
-repo.tab_history:
-  en: "History"
-  fr: "Historique"
 repo.reading_status:
   en: "Reading the repository state…"
   fr: "Lecture de l'état du dépôt…"
@@ -108,26 +96,20 @@ changes.conflicts:
   en: "In conflict"
   fr: "En conflit"
 changes.conflicts_hint:
-  en: "to resolve before going further"
-  fr: "à résoudre avant de continuer"
+  en: "conflict · unmerged"
+  fr: "conflit · unmerged"
 changes.staged:
-  en: "Ready to be saved"
-  fr: "Prêt à être enregistré"
+  en: "Included in the save"
+  fr: "Inclus dans l'enregistrement"
 changes.staged_hint:
-  en: "git: staged, in the index"
-  fr: "git : indexé, « staged »"
+  en: "staged"
+  fr: "indexé · staged"
 changes.unstaged:
-  en: "Modified"
-  fr: "Modifié"
+  en: "Not included yet"
+  fr: "Pas encore inclus"
 changes.unstaged_hint:
-  en: "git: unstaged"
-  fr: "git : non indexé, « unstaged »"
-changes.untracked:
-  en: "New files"
-  fr: "Nouveaux fichiers"
-changes.untracked_hint:
-  en: "git: untracked"
-  fr: "git : non suivis, « untracked »"
+  en: "unstaged · untracked"
+  fr: "non indexé · unstaged"
 
 history.none:
   en: "No commits yet."
@@ -252,3 +234,63 @@ status.submodule_modified:
 status.modified:
   en: "Modified"
   fr: "Modifié"
+
+changes.title:
+  en: "What changed"
+  fr: "Ce qui a changé"
+
+changes.new_badge:
+  en: "NEW"
+  fr: "NOUVEAU"
+
+nav.changes:
+  en: "Changes"
+  fr: "Modifications"
+
+nav.history:
+  en: "History and branches"
+  fr: "Historique et branches"
+
+sidebar.my_branches:
+  en: "My branches"
+  fr: "Mes branches"
+
+sidebar.remote:
+  en: "On the server"
+  fr: "Sur le serveur"
+
+sidebar.here:
+  en: "here"
+  fr: "ici"
+
+history.title:
+  en: "History"
+  fr: "Historique"
+
+journal.copy:
+  en: "Copy"
+  fr: "Copier"
+
+toolbar.change_repo:
+  en: "Open another repository"
+  fr: "Ouvrir un autre dépôt"
+
+pill.ahead:
+  en: "%{count} to send"
+  fr: "%{count} à envoyer"
+
+pill.behind:
+  en: "%{count} to get"
+  fr: "%{count} à récupérer"
+
+pill.up_to_date:
+  en: "up to date"
+  fr: "à jour"
+
+pill.unpublished:
+  en: "not on the server"
+  fr: "pas sur le serveur"
+
+pill.detached:
+  en: "detached HEAD"
+  fr: "HEAD détaché"

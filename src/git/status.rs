@@ -131,7 +131,13 @@ impl Status {
 }
 
 /// The arguments that produce the output [`parse`] expects.
-pub const STATUS_ARGS: &[&str] = &["status", "--porcelain=v2", "--branch", "-z"];
+pub const STATUS_ARGS: &[&str] = &[
+    "status",
+    "--porcelain=v2",
+    "--branch",
+    "--untracked-files=all",
+    "-z",
+];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError(pub String);

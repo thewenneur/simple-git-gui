@@ -139,6 +139,47 @@ pub fn parse_log(output: &str) -> Vec<Commit> {
         .collect()
 }
 
+/// A local or remote-tracking branch.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Branch {
+    /// Short name: `main`, `origin/main`.
+    pub name: String,
+    pub remote: bool,
+    /// The branch currently checked out.
+    pub current: bool,
+}
+
+pub fn branches_command(root: &Path) -> GitCommand {
+    GitCommand::new([
+        "for-each-ref",
+        "--format=%(refname)%1f%(refname:short)%1f%(HEAD)",
+        "refs/heads",
+        "refs/remotes",
+    ])
+    .in_dir(root)
+}
+
+pub fn parse_branches(output: &str) -> Vec<Branch> {
+    output
+        .lines()
+        .filter_map(|line| {
+            let f: Vec<&str> = line.split(SEP).collect();
+            let [full, short, head] = f.as_slice() else {
+                return None;
+            };
+            // `origin/HEAD` is only an alias of the remote's default branch.
+            if full.ends_with("/HEAD") {
+                return None;
+            }
+            Some(Branch {
+                name: short.to_string(),
+                remote: full.starts_with("refs/remotes/"),
+                current: *head == "*",
+            })
+        })
+        .collect()
+}
+
 pub fn clone_command(url: &str, dest: &Path) -> GitCommand {
     GitCommand::new([
         "clone".to_string(),
@@ -174,6 +215,19 @@ mod tests {
         );
         assert_eq!(clone_folder_name("https://example.com/repo/"), "repo");
         assert_eq!(clone_folder_name("C:\\depots\\proj"), "proj");
+    }
+
+    #[test]
+    fn parses_branches() {
+        let out = format!(
+            "refs/heads/main{SEP}main{SEP} \nrefs/heads/feature/uart{SEP}feature/uart{SEP}*\nrefs/remotes/origin/HEAD{SEP}origin{SEP} \nrefs/remotes/origin/main{SEP}origin/main{SEP} \n"
+        );
+        let branches = parse_branches(&out);
+        assert_eq!(branches.len(), 3);
+        assert!(!branches[0].current && !branches[0].remote);
+        assert!(branches[1].current);
+        assert_eq!(branches[2].name, "origin/main");
+        assert!(branches[2].remote);
     }
 
     #[test]
