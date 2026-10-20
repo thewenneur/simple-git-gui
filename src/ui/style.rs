@@ -7,6 +7,9 @@
 use iced::font::Weight;
 use iced::overlay::menu;
 use iced::widget::{button, checkbox, container, pick_list, scrollable, text_editor, text_input};
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Mutex;
+
 use iced::{Background, Border, Color, Font, Shadow, Theme, color};
 
 pub const SANS: Font = Font::with_name("IBM Plex Sans");
@@ -69,12 +72,25 @@ pub struct Palette {
     /// Background of card footers (commit form).
     pub surface_alt: Color,
     pub line_number: Color,
+    /// `main`, `master`, `develop`.
     pub branch_main: Tint,
-    pub branch_feature: Tint,
-    pub branch_fix: Tint,
-    pub branch_other: Tint,
+    /// Every other branch gets one of these, its own as long as there are
+    /// enough (see [`assign_branch_colors`]).
+    pub branches: [Tint; BRANCH_COLORS],
     pub journal_bg: Color,
     pub journal_border: Color,
+    pub syntax: Syntax,
+}
+
+/// Colors of code tokens, readable on the page and on every diff line tint.
+#[derive(Debug, Clone, Copy)]
+pub struct Syntax {
+    pub keyword: Color,
+    pub kind: Color,
+    pub string: Color,
+    pub comment: Color,
+    pub number: Color,
+    pub attribute: Color,
 }
 
 pub const LIGHT: Palette = Palette {
@@ -123,23 +139,53 @@ pub const LIGHT: Palette = Palette {
         soft: color!(0xE4EBFB),
         text: color!(0x1A3C99),
     },
-    branch_feature: Tint {
-        strong: color!(0xC2570C),
-        soft: color!(0xFDF1E7),
-        text: color!(0x8F3E06),
-    },
-    branch_fix: Tint {
-        strong: color!(0x7B3FC4),
-        soft: color!(0xF1EAFB),
-        text: color!(0x5A2A99),
-    },
-    branch_other: Tint {
-        strong: color!(0x0F7B74),
-        soft: color!(0xE2F4F2),
-        text: color!(0x0B5A55),
-    },
+    branches: [
+        Tint {
+            strong: color!(0xC2570C),
+            soft: color!(0xFDF1E7),
+            text: color!(0x8F3E06),
+        },
+        Tint {
+            strong: color!(0x7B3FC4),
+            soft: color!(0xF1EAFB),
+            text: color!(0x5A2A99),
+        },
+        Tint {
+            strong: color!(0x0F7B74),
+            soft: color!(0xE2F4F2),
+            text: color!(0x0B5A55),
+        },
+        Tint {
+            strong: color!(0xB0306A),
+            soft: color!(0xFBE8F1),
+            text: color!(0x85204F),
+        },
+        Tint {
+            strong: color!(0x3B7D23),
+            soft: color!(0xE8F4E2),
+            text: color!(0x2B5C19),
+        },
+        Tint {
+            strong: color!(0x8F6A00),
+            soft: color!(0xFBF3D9),
+            text: color!(0x6B4F00),
+        },
+        Tint {
+            strong: color!(0x5A6B85),
+            soft: color!(0xEBEEF3),
+            text: color!(0x414E63),
+        },
+    ],
     journal_bg: color!(0x141A23),
     journal_border: color!(0x263040),
+    syntax: Syntax {
+        keyword: color!(0x1F45B5),
+        kind: color!(0x7A2E9E),
+        string: color!(0x0A6B5E),
+        comment: color!(0x5E6878),
+        number: color!(0x9A4A00),
+        attribute: color!(0xA0306E),
+    },
 };
 
 pub const DARK: Palette = Palette {
@@ -188,23 +234,53 @@ pub const DARK: Palette = Palette {
         soft: color!(0x1E2A45),
         text: color!(0x9DB8FF),
     },
-    branch_feature: Tint {
-        strong: color!(0xE8803A),
-        soft: color!(0x2E1D11),
-        text: color!(0xF5A262),
-    },
-    branch_fix: Tint {
-        strong: color!(0xA77BEA),
-        soft: color!(0x2A2147),
-        text: color!(0xDCD2FF),
-    },
-    branch_other: Tint {
-        strong: color!(0x4FC1B8),
-        soft: color!(0x13302D),
-        text: color!(0xA6E3DE),
-    },
+    branches: [
+        Tint {
+            strong: color!(0xE8803A),
+            soft: color!(0x2E1D11),
+            text: color!(0xF5A262),
+        },
+        Tint {
+            strong: color!(0xA77BEA),
+            soft: color!(0x2A2147),
+            text: color!(0xDCD2FF),
+        },
+        Tint {
+            strong: color!(0x4FC1B8),
+            soft: color!(0x13302D),
+            text: color!(0xA6E3DE),
+        },
+        Tint {
+            strong: color!(0xEC7FB0),
+            soft: color!(0x3A1729),
+            text: color!(0xF7C1DA),
+        },
+        Tint {
+            strong: color!(0x8BCF6E),
+            soft: color!(0x1A2E12),
+            text: color!(0xC6EBB5),
+        },
+        Tint {
+            strong: color!(0xE0B84A),
+            soft: color!(0x33290D),
+            text: color!(0xF2DC9A),
+        },
+        Tint {
+            strong: color!(0x9AA9C2),
+            soft: color!(0x232B38),
+            text: color!(0xCFD7E4),
+        },
+    ],
     journal_bg: color!(0x0B0F15),
     journal_border: color!(0x1E2633),
+    syntax: Syntax {
+        keyword: color!(0x8FB3FF),
+        kind: color!(0xD7A6FF),
+        string: color!(0x7FD4C8),
+        comment: color!(0x8D99AB),
+        number: color!(0xF5A262),
+        attribute: color!(0xF28FB8),
+    },
 };
 
 /// Colors of the Git journal, identical in both themes (it is always dark).
@@ -247,29 +323,84 @@ pub fn palette(theme: &Theme) -> &'static Palette {
     }
 }
 
-/// Colors of a branch, from the usual naming conventions.
-pub fn branch_tint(p: &Palette, name: &str) -> Tint {
-    let local = name.split_once('/').map_or(name, |(first, rest)| {
-        // `origin/feature/x` → `feature/x`
+/// Number of colors for branches other than `main`.
+pub const BRANCH_COLORS: usize = 7;
+
+/// Color slot of each branch of the open repository, so that branches get
+/// different colors and keep them while the app runs.
+static BRANCH_SLOTS: Mutex<BTreeMap<String, usize>> = Mutex::new(BTreeMap::new());
+
+/// `origin/feature/x` → `feature/x`: a branch and its remote share a color.
+fn local_branch_name(name: &str) -> &str {
+    name.split_once('/').map_or(name, |(first, rest)| {
         if rest.contains('/') || matches!(first, "origin" | "upstream") {
             rest
         } else {
             name
         }
+    })
+}
+
+fn is_main_branch(local: &str) -> bool {
+    matches!(
+        local.to_lowercase().as_str(),
+        "main" | "master" | "develop" | "dev"
+    )
+}
+
+/// The slot a name gets when it is free: stable from one run to the next.
+fn preferred_slot(local: &str) -> usize {
+    // FNV-1a
+    let hash = local.bytes().fold(0xcbf2_9ce4_8422_2325_u64, |h, b| {
+        (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
     });
-    let lower = local.to_lowercase();
-    if matches!(lower.as_str(), "main" | "master" | "develop" | "dev") {
-        p.branch_main
-    } else if ["feature/", "feat/"].iter().any(|s| lower.starts_with(s)) {
-        p.branch_feature
-    } else if ["fix/", "hotfix/", "bugfix/"]
-        .iter()
-        .any(|s| lower.starts_with(s))
-    {
-        p.branch_fix
-    } else {
-        p.branch_other
+    (hash % BRANCH_COLORS as u64) as usize
+}
+
+/// Gives each branch of the repository its own color. Branches already seen
+/// keep theirs; a new branch takes its preferred color when no other branch
+/// has it, else the least used one.
+pub fn assign_branch_colors<'a>(names: impl IntoIterator<Item = &'a str>) {
+    let present: BTreeSet<&str> = names
+        .into_iter()
+        .map(local_branch_name)
+        .filter(|n| !is_main_branch(n))
+        .collect();
+    let mut slots = BRANCH_SLOTS.lock().unwrap_or_else(|e| e.into_inner());
+    slots.retain(|name, _| present.contains(name.as_str()));
+    for name in present {
+        if slots.contains_key(name) {
+            continue;
+        }
+        let mut used = [0usize; BRANCH_COLORS];
+        for slot in slots.values() {
+            used[*slot] += 1;
+        }
+        let preferred = preferred_slot(name);
+        let slot = if used[preferred] == 0 {
+            preferred
+        } else {
+            (0..BRANCH_COLORS)
+                .min_by_key(|s| (used[*s], (*s + BRANCH_COLORS - preferred) % BRANCH_COLORS))
+                .unwrap_or(preferred)
+        };
+        slots.insert(name.to_string(), slot);
     }
+}
+
+/// Colors of a branch: blue for the main branch, otherwise the color given
+/// by [`assign_branch_colors`].
+pub fn branch_tint(p: &Palette, name: &str) -> Tint {
+    let local = local_branch_name(name);
+    if is_main_branch(local) {
+        return p.branch_main;
+    }
+    let slots = BRANCH_SLOTS.lock().unwrap_or_else(|e| e.into_inner());
+    let slot = slots
+        .get(local)
+        .copied()
+        .unwrap_or_else(|| preferred_slot(local));
+    p.branches[slot]
 }
 
 fn border(color: Color, width: f32, radius: f32) -> Border {
@@ -370,6 +501,33 @@ pub fn tinted(tint: Tint) -> impl Fn(&Theme) -> container::Style {
 }
 
 /// A small rounded label (badge, ref name).
+/// White or near-black, whichever reads better on `background`.
+pub fn text_on(background: Color) -> Color {
+    let dark = color!(0x11161E);
+    if contrast(Color::WHITE, background) >= contrast(dark, background) {
+        Color::WHITE
+    } else {
+        dark
+    }
+}
+
+fn luminance(c: Color) -> f32 {
+    let channel = |v: f32| {
+        if v <= 0.04045 {
+            v / 12.92
+        } else {
+            ((v + 0.055) / 1.055).powf(2.4)
+        }
+    };
+    0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b)
+}
+
+/// WCAG contrast ratio between two colors.
+fn contrast(a: Color, b: Color) -> f32 {
+    let (la, lb) = (luminance(a), luminance(b));
+    (la.max(lb) + 0.05) / (la.min(lb) + 0.05)
+}
+
 pub fn badge(background: Color, text: Color) -> impl Fn(&Theme) -> container::Style {
     move |_| container::Style {
         background: Some(background.into()),
@@ -812,7 +970,7 @@ pub fn side_button(tint: Tint, picked: bool) -> impl Fn(&Theme, button::Status) 
     move |theme, status| {
         let p = palette(theme);
         if picked {
-            button_base(Some(tint.strong), Color::WHITE, tint.strong, 1.0)
+            button_base(Some(tint.strong), text_on(tint.strong), tint.strong, 1.0)
         } else if matches!(status, button::Status::Hovered) {
             button_base(Some(tint.soft), tint.text, tint.strong, 1.0)
         } else {
@@ -978,25 +1136,92 @@ mod tests {
     use super::*;
 
     #[test]
-    fn branch_colors_follow_naming() {
+    fn every_branch_gets_its_own_color() {
         let p = &LIGHT;
+        let names = [
+            "main",
+            "origin/main",
+            "feature/uart-rx",
+            "origin/feature/uart-rx",
+            "feature/uart-tx",
+            "fix/timing-pll",
+            "fix/reset",
+            "essai",
+        ];
+        assign_branch_colors(names);
         assert_eq!(branch_tint(p, "main").strong, p.branch_main.strong);
         assert_eq!(branch_tint(p, "origin/main").strong, p.branch_main.strong);
         assert_eq!(
             branch_tint(p, "feature/uart-rx").strong,
-            p.branch_feature.strong
+            branch_tint(p, "origin/feature/uart-rx").strong
         );
-        assert_eq!(
-            branch_tint(p, "origin/feature/uart-rx").strong,
-            p.branch_feature.strong
-        );
-        assert_eq!(branch_tint(p, "fix/timing-pll").strong, p.branch_fix.strong);
-        assert_eq!(branch_tint(p, "essai").strong, p.branch_other.strong);
+        let others = [
+            "feature/uart-rx",
+            "feature/uart-tx",
+            "fix/timing-pll",
+            "fix/reset",
+            "essai",
+        ];
+        let colors: Vec<_> = others.iter().map(|n| branch_tint(p, n).strong).collect();
+        for (i, a) in colors.iter().enumerate() {
+            assert_ne!(*a, p.branch_main.strong);
+            for b in &colors[i + 1..] {
+                assert_ne!(a, b, "two branches share a color");
+            }
+        }
+        // A new branch does not change the colors already given.
+        let before = branch_tint(p, "fix/reset").strong;
+        assign_branch_colors(names.into_iter().chain(["feature/spi"]));
+        assert_eq!(branch_tint(p, "fix/reset").strong, before);
+        assert!(!colors.contains(&branch_tint(p, "feature/spi").strong));
+    }
+
+    #[test]
+    fn branch_colors_are_readable() {
+        for p in [&LIGHT, &DARK] {
+            for t in p.branches.iter().chain([&p.branch_main]) {
+                assert!(contrast(t.strong, p.surface) >= 3.0, "{:?}", t.strong);
+                assert!(contrast(t.text, t.soft) >= 4.5, "{:?}", t.text);
+                assert!(contrast(t.text, p.surface) >= 4.5, "{:?}", t.text);
+                assert!(
+                    contrast(text_on(t.strong), t.strong) >= 4.5,
+                    "{:?}",
+                    t.strong
+                );
+            }
+        }
     }
 
     #[test]
     fn themes_are_detected_as_dark_or_light() {
         assert_eq!(palette(&theme(false)).page, LIGHT.page);
         assert_eq!(palette(&theme(true)).page, DARK.page);
+    }
+
+    #[test]
+    fn code_colors_are_readable_on_every_line_background() {
+        for p in [&LIGHT, &DARK] {
+            let s = p.syntax;
+            let backgrounds = [
+                p.surface,
+                p.page,
+                p.added.soft,
+                p.removed.soft,
+                p.moved.soft,
+            ];
+            for color in [
+                s.keyword,
+                s.kind,
+                s.string,
+                s.comment,
+                s.number,
+                s.attribute,
+            ] {
+                for bg in backgrounds {
+                    let ratio = contrast(color, bg);
+                    assert!(ratio >= 4.5, "{color:?} on {bg:?}: {ratio:.2}");
+                }
+            }
+        }
     }
 }

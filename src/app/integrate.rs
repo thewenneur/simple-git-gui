@@ -11,6 +11,7 @@ use crate::git::conflict::{self, Choice, Duplicate, Part};
 pub use crate::git::integrate::Kind;
 use crate::git::integrate::{self, Sides};
 use crate::git::undo::{self as git_undo, Entry, Moves, State};
+use crate::ui::syntax;
 
 /// The dialog shown before starting a merge or a rebase.
 #[derive(Debug, Clone)]
@@ -1227,7 +1228,7 @@ impl App {
                     .width(Length::Fill)
                     .center_y(52)
                     .style(style::side_header(tint)),
-                    container(code_block(body, p))
+                    container(code_block(body, &file.path, p))
                         .padding([10, 14])
                         .width(Length::Fill),
                     container(
@@ -1240,7 +1241,7 @@ impl App {
                             .size(13)
                             .font(sans(Weight::Semibold))
                             .color(if picked {
-                                Color::WHITE
+                                style::text_on(tint.strong)
                             } else {
                                 tint.text
                             }),
@@ -1306,7 +1307,7 @@ impl App {
                             .size(12)
                             .font(sans(Weight::Semibold))
                             .color(p.text_2),
-                        code_block(base, p),
+                        code_block(base, &file.path, p),
                     ]
                     .spacing(6)
                     .padding([10, 16]),
@@ -1559,18 +1560,30 @@ impl App {
     }
 }
 
-/// Lines in the monospace font, as in the file.
-fn code_block<'a>(body: &str, p: &'static Palette) -> Element<'a, Message> {
-    let shown = if body.is_empty() {
-        t!("integrate.empty_side").into_owned()
-    } else {
-        body.trim_end_matches('\n').to_string()
+/// Lines in the monospace font, as in the file, with the colors of its
+/// language when it is known.
+fn code_block<'a>(body: &'a str, path: &str, p: &'static Palette) -> Element<'a, Message> {
+    if body.is_empty() {
+        return text(t!("integrate.empty_side"))
+            .font(style::MONO)
+            .size(13)
+            .color(p.muted)
+            .into();
+    }
+    let Some(lang) = syntax::language_for(path) else {
+        return text(body.trim_end_matches('\n'))
+            .font(style::MONO)
+            .size(13)
+            .color(p.text)
+            .into();
     };
-    text(shown)
-        .font(style::MONO)
-        .size(13)
-        .color(if body.is_empty() { p.muted } else { p.text })
-        .into()
+    let mut state = syntax::State::Normal;
+    let mut col = column![];
+    for line in body.trim_end_matches('\n').lines() {
+        let pieces = syntax::highlight(lang, line, &mut state);
+        col = col.push(super::changes::code(line, &pieces, p.text, p));
+    }
+    col.into()
 }
 
 /// A branch color made readable on the dark header.

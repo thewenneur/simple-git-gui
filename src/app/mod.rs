@@ -434,6 +434,7 @@ impl App {
                     Vec::new()
                 };
                 repo.branches = repo::parse_branches(&branches.stdout);
+                style::assign_branch_colors(repo.branches.iter().map(|b| b.name.as_str()));
                 repo.stashes = branches::parse_stash_list(&stashes.stdout);
                 repo.previous_branch = previous_branch
                     .success()
