@@ -106,8 +106,9 @@ impl GitCommand {
         match sub {
             Some(
                 "--version" | "status" | "log" | "diff" | "show" | "rev-parse" | "rev-list"
-                | "for-each-ref" | "ls-files" | "cat-file" | "merge-base",
+                | "for-each-ref" | "ls-files" | "cat-file" | "merge-base" | "diff-tree",
             ) => true,
+            Some("stash") => rest.first() == Some(&"list"),
             Some("remote") => rest.iter().all(|a| *a == "-v"),
             Some("config") => rest
                 .iter()
@@ -374,6 +375,8 @@ mod tests {
             &["config", "--get", "pull.rebase"],
             &["symbolic-ref", "-q", "HEAD"],
             &["-c", "x=y", "rev-parse", "HEAD"],
+            &["stash", "list"],
+            &["diff-tree", "--root", "abc"],
         ] {
             assert!(hidden(args), "{args:?}");
         }
@@ -383,6 +386,7 @@ mod tests {
             &["config", "--local", "user.name", "Lea"],
             &["symbolic-ref", "HEAD", "refs/heads/main"],
             &["push"],
+            &["stash", "push", "-m", "auto/main"],
         ] {
             assert!(!hidden(args), "{args:?}");
         }

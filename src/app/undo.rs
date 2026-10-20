@@ -9,7 +9,7 @@ use iced::widget::row;
 use iced::window;
 
 use super::*;
-use crate::git::undo::{self, ConfigEdit, Entry, FileChange, Moves, Refusal};
+use crate::git::undo::{self, ConfigEdit, Entry, FileChange, Moves, RefChange, Refusal};
 
 /// The most actions kept for undo.
 const UNDO_LIMIT: usize = 50;
@@ -20,6 +20,12 @@ pub struct Undoable {
     pub moves: Moves,
     pub file: Option<FileChange>,
     pub config: Option<ConfigEdit>,
+    /// Branches and tags the action may create, move or delete.
+    pub refs: Vec<String>,
+    /// A file the action rewrites: its content is read before and after.
+    pub watch_file: Option<PathBuf>,
+    /// A conflicted file the action marks as settled.
+    pub resolved: Option<String>,
 }
 
 impl Undoable {
@@ -29,6 +35,9 @@ impl Undoable {
             moves,
             file: None,
             config: None,
+            refs: Vec::new(),
+            watch_file: None,
+            resolved: None,
         }
     }
 }
@@ -62,6 +71,17 @@ impl UndoStacks {
 
 /// Ctrl+Z, Ctrl+Y and Ctrl+Shift+Z, when no widget used the key.
 pub fn shortcut(event: Event, status: event::Status, _window: window::Id) -> Option<Message> {
+    match &event {
+        Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
+            return Some(Message::Modifiers(*modifiers));
+        }
+        Event::Window(window::Event::Resized(size)) => return Some(Message::WindowResized(*size)),
+        Event::Keyboard(keyboard::Event::KeyPressed {
+            key: Key::Named(keyboard::key::Named::Escape),
+            ..
+        }) => return Some(Message::Escape),
+        _ => {}
+    }
     if status == event::Status::Captured {
         return None;
     }
@@ -110,15 +130,43 @@ impl App {
                     return Message::ActionDone(action, work.await, None);
                 };
                 let (before, mut records) = undo::snapshot(&root).await;
+                let file_before = undoable.watch_file.as_ref().map(|p| std::fs::read(p).ok());
+                let (refs_before, ref_records) = undo::snapshot_refs(&root, &undoable.refs).await;
+                records.extend(ref_records);
                 records.extend(work.await);
-                let (after, after_records) = undo::snapshot(&root).await;
+                let (after, mut after_records) = undo::snapshot(&root).await;
+                let file = match (undoable.watch_file, file_before) {
+                    (Some(path), Some(before)) => {
+                        let after = std::fs::read(&path).ok();
+                        Some(FileChange {
+                            path,
+                            before,
+                            after,
+                        })
+                    }
+                    _ => undoable.file,
+                };
+                let (refs_after, ref_records) = undo::snapshot_refs(&root, &undoable.refs).await;
+                after_records.extend(ref_records);
+                let refs = undoable
+                    .refs
+                    .into_iter()
+                    .zip(refs_before.into_iter().zip(refs_after))
+                    .map(|(name, (before, after))| RefChange {
+                        name,
+                        before,
+                        after,
+                    })
+                    .collect();
                 let entry = Entry {
                     label: undoable.label,
                     moves: undoable.moves,
                     before,
                     after,
-                    file: undoable.file,
+                    file,
                     config: undoable.config,
+                    refs,
+                    resolved: undoable.resolved,
                 };
                 // Keep the action's own result last: it decides success.
                 let last = records.pop();

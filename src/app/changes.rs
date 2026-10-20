@@ -343,11 +343,11 @@ impl App {
             crate::git::runner::quote(&pattern),
             target.display()
         );
-        let before = std::fs::read_to_string(&file).ok();
+        let before = std::fs::read(&file).ok();
         let result = ignore::append(&file, &pattern)
             .map(|_| ())
             .map_err(|e| e.to_string());
-        let after = std::fs::read_to_string(&file).ok();
+        let after = std::fs::read(&file).ok();
         let ok = result.is_ok();
         let record = CommandRecord::local(shell, &root, result);
         if !ok {
@@ -375,6 +375,9 @@ impl App {
                 after,
             }),
             config: None,
+            refs: Vec::new(),
+            watch_file: None,
+            resolved: None,
         };
         self.perform(Action::Ignore, None, Some(undoable), commands)
     }
@@ -1009,7 +1012,7 @@ fn display_order(status: &Status) -> Vec<(&FileEntry, bool)> {
 }
 
 /// First and last line of a hunk, on the new side unless it only removes.
-fn hunk_range(hunk: &Hunk) -> (u32, u32) {
+pub(super) fn hunk_range(hunk: &Hunk) -> (u32, u32) {
     let (start, len) = if hunk.new_len > 0 {
         (hunk.new_start, hunk.new_len)
     } else {
@@ -1090,7 +1093,7 @@ fn ends_moved_run(line: &Line, next: Option<&Line>) -> bool {
     line.is_moved() && next.is_none_or(|n| !n.is_moved() || n.kind != line.kind)
 }
 
-fn unified<'a>(lines: &'a [Line], p: &'static Palette) -> Element<'a, Message> {
+pub(super) fn unified<'a>(lines: &'a [Line], p: &'static Palette) -> Element<'a, Message> {
     let mut col = column![];
     for (i, line) in lines.iter().enumerate() {
         let (background, color, number_color, mark) = line_look(line, p);
@@ -1123,7 +1126,7 @@ fn unified<'a>(lines: &'a [Line], p: &'static Palette) -> Element<'a, Message> {
 
 /// Old version on the left, new on the right; removed and added lines that
 /// follow each other are shown face to face.
-fn side_by_side<'a>(lines: &'a [Line], p: &'static Palette) -> Element<'a, Message> {
+pub(super) fn side_by_side<'a>(lines: &'a [Line], p: &'static Palette) -> Element<'a, Message> {
     let mut pairs: Vec<(Option<&Line>, Option<&Line>)> = Vec::new();
     let mut i = 0;
     while i < lines.len() {
