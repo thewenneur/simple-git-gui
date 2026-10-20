@@ -113,8 +113,13 @@ async fn build(
         std::fs::remove_dir_all(base).map_err(|e| format!("{}: {e}", base.display()))?;
     }
     std::fs::create_dir_all(base).map_err(|e| format!("{}: {e}", base.display()))?;
-    // `/tmp` is a link on macOS: use the real path, as git reports it.
-    let base = std::fs::canonicalize(base).unwrap_or_else(|_| base.to_path_buf());
+    // `/tmp` is a link on macOS: use the real path, as git reports it. Not
+    // on Windows, where it gives a `\\?\` path git cannot use.
+    let base = if cfg!(windows) {
+        base.to_path_buf()
+    } else {
+        std::fs::canonicalize(base).unwrap_or_else(|_| base.to_path_buf())
+    };
     let server = base.join(SERVER);
     let lea = base.join(COLLEAGUE);
     let repo = base.join(REPO);
