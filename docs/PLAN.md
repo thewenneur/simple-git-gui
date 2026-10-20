@@ -67,3 +67,17 @@ switching back and forth or setting work aside.
   and offer to open that workspace instead.
 - Submodules in a new workspace are downloaded on request (`git submodule update --init`).
 - Undo with Ctrl+Z where possible (a removed workspace with no changes can be re-added).
+
+## 6. Interactive tutorial
+A guided tour on first launch, replayable at any time from the help menu
+("Replay the tutorial") and from the start screen.
+- Runs on a practice repository created in a temporary folder, so nothing the
+  user does in it can touch real work; the git commands it runs show in the Git log
+  like everywhere else.
+- Steps highlight the real interface (the rest dimmed) and wait for the user to do the
+  action: open a repository, look at a change, stage and commit, get and send, create a
+  branch, drag a commit in the tree, settle a conflict with the named-side assistant,
+  undo with Ctrl+Z, lock a binary file.
+- Each step can be skipped; the tour can be left and resumed where it stopped.
+- Short tracks per audience (hardware, design, advanced) picked at the start.
+- Shown once automatically (remembered in the app's settings), in English and French.
