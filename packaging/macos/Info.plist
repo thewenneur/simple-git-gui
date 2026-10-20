@@ -8,6 +8,8 @@
 	<string>Simple Git</string>
 	<key>CFBundleIdentifier</key>
 	<string>io.github.thewenneur.simple-git-gui</string>
+	<key>CFBundleIconFile</key>
+	<string>simple-git</string>
 	<key>CFBundleExecutable</key>
 	<string>simple-git-gui</string>
 	<key>CFBundlePackageType</key>
@@ -18,6 +20,10 @@
 	<string>VERSION</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>11.0</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.developer-tools</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Simple Git contributors</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

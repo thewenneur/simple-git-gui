@@ -15,11 +15,40 @@ A portable desktop application written in Rust with [iced](https://iced.rs). It 
 
 ## Download
 
-Portable executables are attached to each [release](https://github.com/thewenneur/simple-git-gui/releases): a single `.exe`
-for Windows, a zipped `Simple Git.app` for macOS (Apple Silicon and Intel; not notarized,
-so open it the first time with right-click → Open) and a `.tar.gz` for Linux. They are
-built by `.github/workflows/release.yml` when a `v*` tag is pushed, or on demand from the
-Actions tab.
+Installers and portable executables are attached to each
+[release](https://github.com/thewenneur/simple-git-gui/releases):
+
+- **Windows**: a setup `.exe` that installs for the current user without administrator
+  rights, or a single portable `.exe` to run from anywhere.
+- **macOS** (Apple Silicon and Intel): a `.dmg`; drag Simple Git onto Applications. It is
+  not notarized, so open it the first time with right-click → Open.
+- **Linux**: an AppImage, or a `.tar.gz` whose `install.sh` adds Simple Git to the
+  applications menu of the current user.
+
+### Opening a folder from a terminal
+
+`simple-git-gui .` opens the current folder, and `simple-git-gui <folder>` any other one.
+The command is set up by:
+
+- **Windows**: the installer (option checked by default; it adds Simple Git to the `PATH`).
+- **macOS**: double-click **Install Terminal Command** in the `.dmg` (right-click → Open
+  the first time). It installs a small `simple-git-gui` script in `/usr/local/bin`.
+- **Linux**: `install.sh` from the `.tar.gz` (in `~/.local/bin`). With the AppImage, move it
+  to a folder of your `PATH` under that name, for example
+  `mv simple-git-gui-*.AppImage ~/.local/bin/simple-git-gui`.
+
+They are built by `.github/workflows/release.yml` when a `v*` tag is pushed, or on demand
+from the Actions tab. See [docs/RELEASING.md](docs/RELEASING.md) and the
+[changelog](CHANGELOG.md).
+
+## AI usage disclosure
+
+Simple Git is written with heavy use of AI. Its code, tests, documentation, packaging
+and icon are written by [Claude](https://www.anthropic.com/claude) (Anthropic), through
+Claude Code, following the requirements and design choices of the maintainer, who
+tries each version and decides what is merged. Keep this in mind when you review or
+reuse the code, and please report anything that looks wrong in the
+[issues](https://github.com/thewenneur/simple-git-gui/issues).
 
 ## Running
 
@@ -155,6 +184,9 @@ The roadmap is in [docs/PLAN.md](docs/PLAN.md).
 - `assets/fonts/`: IBM Plex Sans and Mono (SIL OFL 1.1 license, see `OFL.txt`).
 - `locales/app.yml`: every UI text, in English and French side by side. A test checks that
   every key exists in both languages and that every key used in the code exists.
+- `assets/icon/`: the app icon (`simple-git.svg`) and the files rendered from it.
+- `packaging/`: the Windows installer script, the macOS `Info.plist`, the Linux menu
+  entry and install script; `build.rs` embeds the icon in the Windows executable.
 
 ## Tests
 
