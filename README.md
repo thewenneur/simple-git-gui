@@ -73,7 +73,8 @@ cargo run --release -- ~/project    # opens this repository directly
   "create a branch here" and "go back".
 - **Drag and drop** in the history, always confirmed with the exact command: a commit of
   your branch dropped on another commit or branch rebases from there; another commit
-  dropped on your branch merges it; Ctrl+drag copies it (cherry-pick); a branch label
+  dropped on your branch merges it; when both a merge and a rebase fit, the confirmation
+  lets you pick one; Ctrl+drag copies it (cherry-pick); a branch label
   dropped on a commit moves the branch (its old position is kept in `refs/backup/`);
   a label dropped on its server counterpart sends or gets; two neighbouring commits not
   sent yet are swapped or squashed. The message of an older commit not sent yet can be
