@@ -86,7 +86,14 @@ mod tests {
     fn every_used_key_exists() {
         let known: Vec<String> = keys().into_iter().map(|(k, _)| k).collect();
         let sources = [
-            include_str!("app.rs"),
+            include_str!("app/mod.rs"),
+            include_str!("app/changes.rs"),
+            include_str!("app/sync.rs"),
+            include_str!("app/undo.rs"),
+            include_str!("app/config.rs"),
+            include_str!("git/undo.rs"),
+            include_str!("git/diff.rs"),
+            include_str!("git/ops.rs"),
             include_str!("git/repo.rs"),
             include_str!("git/runner.rs"),
             include_str!("git/status.rs"),
@@ -118,7 +125,7 @@ mod tests {
     fn translates_with_arguments() {
         assert_eq!(
             t!("branch.current", name = "main", locale = "fr"),
-            "Branche : main"
+            "Branche\u{a0}: main"
         );
         assert_eq!(
             t!("branch.current", name = "main", locale = "en"),
