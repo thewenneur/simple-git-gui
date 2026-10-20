@@ -459,6 +459,16 @@ impl App {
         content: impl Into<Element<'a, Message>>,
     ) -> Element<'a, Message> {
         let lit = self.active_lesson().map(Lesson::spot) == Some(spot);
+        // A sidebar item sits in a scrollable: a stack there hides every
+        // layer drawn after it with the GPU renderer (the guide card among
+        // them), so the frame goes around the item instead.
+        if let Spot::Nav(_) = spot {
+            return if lit {
+                container(content).padding(2).style(style::spotlight).into()
+            } else {
+                content.into()
+            };
+        }
         let frame = container(Space::new())
             .width(Length::Fill)
             .height(Length::Fill);
