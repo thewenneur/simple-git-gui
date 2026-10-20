@@ -23,6 +23,8 @@ const MENU_WIDTH: f32 = 380.0;
 const MENU_ITEM_HEIGHT: f32 = 38.0;
 /// Lines of a commit's diff drawn at most.
 const MAX_DIFF_LINES: usize = 3000;
+/// Height of a commit's description in the details panel; more scrolls.
+const DESCRIPTION_MAX_HEIGHT: f32 = 120.0;
 /// The reword dialog's description box.
 pub(super) const REWORD_DESCRIPTION: &str = "reword-description";
 
@@ -870,8 +872,21 @@ impl App {
                 let title = lines.next().unwrap_or("").to_string();
                 let body = lines.collect::<Vec<_>>().join("\n").trim().to_string();
                 head = head.push(text(title).size(15).font(sans(Weight::Semibold)));
+                // A long description scrolls on its own, so the files and the
+                // diff below stay in view.
                 if !body.is_empty() {
-                    head = head.push(text(body).size(13).color(p.text_2));
+                    head = head.push(
+                        container(
+                            scrollable(container(text(body).size(13).color(p.text_2)).padding(
+                                Padding {
+                                    right: 12.0,
+                                    ..Padding::ZERO
+                                },
+                            ))
+                            .style(style::scroll),
+                        )
+                        .max_height(DESCRIPTION_MAX_HEIGHT),
+                    );
                 }
                 if let Some(commit) = find(hash) {
                     head = head.push(
