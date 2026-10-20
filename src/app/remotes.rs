@@ -141,7 +141,7 @@ async fn create(
         let ok = staged.success();
         records.push(staged);
         if ok {
-            records.push(run(ops::commit(&dir, "Initial commit")).await);
+            records.push(run(ops::commit(&dir, "Initial commit", "")).await);
         }
     }
     if !remote.is_empty() {
@@ -707,7 +707,7 @@ impl App {
             }
             if form.readme || !form.templates.is_empty() {
                 preview.push("git add -- …".to_string());
-                preview.push(ops::commit(&dir, "Initial commit").display());
+                preview.push(ops::commit(&dir, "Initial commit", "").display());
             }
             if !form.remote.trim().is_empty() {
                 preview.push(remotes::add(&dir, "origin", form.remote.trim()).display());

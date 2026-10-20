@@ -3,7 +3,7 @@
 //! branches, and the dialogs they open.
 
 use iced::widget::canvas::{self, Canvas, Frame, Path as Shape, Stroke};
-use iced::widget::{column, mouse_area, row, text_editor};
+use iced::widget::{column, mouse_area, row};
 use iced::{Point, Rectangle, Renderer, mouse};
 
 use super::changes::{hunk_range, side_by_side, unified};
@@ -13,6 +13,7 @@ use crate::git::branches::{self, ChangedFile, Comparison, Target};
 use crate::git::diff::{self, FileDiff};
 use crate::git::graph::{self, Half};
 use crate::git::undo::Moves;
+use crate::ui::ellipsis::ellipsis;
 
 pub const ROW_HEIGHT: f32 = 40.0;
 const LANE_WIDTH: f32 = 22.0;
@@ -22,6 +23,10 @@ const MENU_WIDTH: f32 = 380.0;
 const MENU_ITEM_HEIGHT: f32 = 38.0;
 /// Lines of a commit's diff drawn at most.
 const MAX_DIFF_LINES: usize = 3000;
+/// Height of a commit's description in the details panel; more scrolls.
+const DESCRIPTION_MAX_HEIGHT: f32 = 120.0;
+/// The reword dialog's description box.
+pub(super) const REWORD_DESCRIPTION: &str = "reword-description";
 
 /// What the history section shows, per open repository.
 #[derive(Default)]
@@ -99,7 +104,7 @@ pub enum Dialog {
     },
     Reword {
         commit: String,
-        content: text_editor::Content,
+        draft: super::message::Draft,
     },
     /// A drag and drop to confirm (`squash`: the choice for two neighbours).
     Drop {
@@ -124,9 +129,9 @@ impl Clone for Dialog {
                 at: at.clone(),
                 name: name.clone(),
             },
-            Dialog::Reword { commit, content } => Dialog::Reword {
+            Dialog::Reword { commit, draft } => Dialog::Reword {
                 commit: commit.clone(),
-                content: text_editor::Content::with_text(&content.text()),
+                draft: draft.clone(),
             },
             Dialog::Drop { plan, squash } => Dialog::Drop {
                 plan: plan.clone(),
@@ -260,6 +265,34 @@ impl App {
         )
     }
 
+    fn open_reword(&mut self, commit: String, message: &str) {
+        self.history_dialog = Some(Dialog::Reword {
+            commit,
+            draft: super::message::Draft::from_message(message),
+        });
+    }
+
+    pub(super) fn reword_message(
+        &mut self,
+        commit: String,
+        record: CommandRecord,
+    ) -> Task<Message> {
+        let message = if record.success() {
+            record.stdout.clone()
+        } else {
+            let subject = self.repo.as_ref().and_then(|repo| {
+                repo.commits
+                    .iter()
+                    .find(|c| c.hash == commit)
+                    .map(|c| c.subject.clone())
+            });
+            subject.unwrap_or_default()
+        };
+        self.log(record);
+        self.open_reword(commit, &message);
+        Task::none()
+    }
+
     pub(super) fn details_loaded(
         &mut self,
         root: PathBuf,
@@ -389,24 +422,24 @@ impl App {
                 )
             }
             MenuAction::Reword(hash) => {
-                let message = repo
+                let shown = repo
                     .history
                     .details
                     .as_ref()
                     .filter(|d| matches!(&d.comparison, Comparison::Commit { hash: h, .. } if *h == hash))
-                    .map(|d| d.message.clone())
-                    .or_else(|| {
-                        repo.commits
-                            .iter()
-                            .find(|c| c.hash == hash)
-                            .map(|c| c.subject.clone())
-                    })
-                    .unwrap_or_default();
-                self.history_dialog = Some(Dialog::Reword {
-                    commit: hash,
-                    content: text_editor::Content::with_text(&message),
-                });
-                Task::none()
+                    .map(|d| d.message.clone());
+                if let Some(message) = shown {
+                    self.open_reword(hash, &message);
+                    return Task::none();
+                }
+                // The list only knows the summary: fetch the description too,
+                // so that saving does not drop it.
+                let command = GitCommand::new(["show", "-s", "--format=%B", hash.as_str()])
+                    .in_dir(&repo.paths.root)
+                    .background();
+                Task::perform(run(command), move |record| {
+                    Message::RewordLoaded(hash.clone(), Box::new(record))
+                })
             }
             MenuAction::CopyId(hash) => {
                 self.notice = Some(t!("history.copied", id = short(&hash)).into_owned());
@@ -537,11 +570,11 @@ impl App {
                 undoable.refs = vec![format!("refs/tags/{name}")];
                 self.perform(Action::History, None, Some(undoable), vec![command])
             }
-            Dialog::Reword { commit, content } => {
-                let message = content.text().trim().to_string();
-                if message.is_empty() {
+            Dialog::Reword { commit, draft } => {
+                if draft.is_empty() {
                     return Task::none();
                 }
+                let message = draft.message();
                 let head = repo.status.as_ref().and_then(|s| s.branch.oid.as_deref());
                 if head != Some(commit.as_str()) {
                     return self.rewrite(
@@ -552,7 +585,7 @@ impl App {
                         t!("undo.reword").into_owned(),
                     );
                 }
-                let command = branches::reword_head(&root, &message);
+                let command = branches::reword_head(&root, draft.summary(), &draft.description());
                 let undoable = Undoable::new(t!("undo.reword").into_owned(), Moves::Commit);
                 self.perform(Action::History, None, Some(undoable), vec![command])
             }
@@ -706,11 +739,7 @@ impl App {
             }
             subject = subject.push(self.ref_badge(repo, commit, name, current, p));
         }
-        subject = subject.push(
-            text(commit.subject.clone())
-                .size(13)
-                .wrapping(iced::widget::text::Wrapping::None),
-        );
+        subject = subject.push(ellipsis(commit.subject.clone()).size(13));
 
         line = line.push(container(subject).width(Length::Fill).clip(true));
         // With the details panel open the row is narrow: keep the message.
@@ -843,8 +872,21 @@ impl App {
                 let title = lines.next().unwrap_or("").to_string();
                 let body = lines.collect::<Vec<_>>().join("\n").trim().to_string();
                 head = head.push(text(title).size(15).font(sans(Weight::Semibold)));
+                // A long description scrolls on its own, so the files and the
+                // diff below stay in view.
                 if !body.is_empty() {
-                    head = head.push(text(body).size(13).color(p.text_2));
+                    head = head.push(
+                        container(
+                            scrollable(container(text(body).size(13).color(p.text_2)).padding(
+                                Padding {
+                                    right: 12.0,
+                                    ..Padding::ZERO
+                                },
+                            ))
+                            .style(style::scroll),
+                        )
+                        .max_height(DESCRIPTION_MAX_HEIGHT),
+                    );
                 }
                 if let Some(commit) = find(hash) {
                     head = head.push(
@@ -1330,13 +1372,26 @@ impl App {
                         .into(),
                 )
             }
-            Dialog::Reword { commit, content } => (
+            Dialog::Reword { commit, draft } => (
                 t!("dialog.reword_title").into_owned(),
                 t!("dialog.reword_intro").into_owned(),
                 if repo.status.as_ref().and_then(|s| s.branch.oid.as_deref())
                     == Some(commit.as_str())
                 {
-                    "git commit --amend --only -m <message>".to_string()
+                    branches::reword_head(
+                        &repo.paths.root,
+                        if draft.is_empty() {
+                            "…"
+                        } else {
+                            draft.summary()
+                        },
+                        if draft.description().is_empty() {
+                            ""
+                        } else {
+                            "…"
+                        },
+                    )
+                    .display()
                 } else {
                     let edit = crate::git::rewrite::Edit::Reword {
                         commit: commit.clone(),
@@ -1353,13 +1408,7 @@ impl App {
                     )
                 },
                 t!("dialog.save").into_owned(),
-                text_editor(content)
-                    .height(140)
-                    .padding(10)
-                    .size(13)
-                    .on_action(Message::DialogEdit)
-                    .style(style::editor)
-                    .into(),
+                draft.view(Message::DialogEdit, REWORD_DESCRIPTION, 120.0, p),
             ),
             Dialog::Drop { plan, squash } => {
                 let (title, intro, confirm) = self.drop_texts(plan, *squash);

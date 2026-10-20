@@ -208,8 +208,14 @@ pub fn revert(root: &Path, hash: &str, merge_commit: bool) -> GitCommand {
 }
 
 /// Changes the message of the last commit, leaving staged changes out.
-pub fn reword_head(root: &Path, message: &str) -> GitCommand {
-    GitCommand::new(["commit", "--amend", "--only", "-m", message]).in_dir(root)
+pub fn reword_head(root: &Path, summary: &str, description: &str) -> GitCommand {
+    let mut command = GitCommand::new(["commit", "--amend", "--only", "-m", summary]);
+    if !description.is_empty() {
+        command
+            .args
+            .extend(["-m".to_string(), description.to_string()]);
+    }
+    command.in_dir(root)
 }
 
 /// Puts a file back as it was in commit `hash` (on disk and staged).

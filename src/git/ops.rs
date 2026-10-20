@@ -71,8 +71,16 @@ pub fn apply_to_index(root: &Path, patch: String, reverse: bool) -> GitCommand {
     GitCommand::new(args).in_dir(root).with_input(patch)
 }
 
-pub fn commit(root: &Path, message: &str) -> GitCommand {
-    GitCommand::new(["commit", "-m", message]).in_dir(root)
+/// `git commit -m <summary> [-m <description>]`: Git joins the two with a
+/// blank line.
+pub fn commit(root: &Path, summary: &str, description: &str) -> GitCommand {
+    let mut command = GitCommand::new(["commit", "-m", summary]);
+    if !description.is_empty() {
+        command
+            .args
+            .extend(["-m".to_string(), description.to_string()]);
+    }
+    command.in_dir(root)
 }
 
 pub fn remotes(root: &Path) -> GitCommand {
@@ -295,8 +303,18 @@ mod tests {
 
         let r = run(apply_to_index(root, parsed.hunk_patch(0).unwrap(), false)).await;
         assert!(r.success());
-        let r = run(commit(root, "Change line 2")).await;
+        let r = run(commit(
+            root,
+            "Change line 2",
+            "Only the first hunk.\n\nThe rest waits.",
+        ))
+        .await;
         assert!(r.success(), "{}", r.stderr);
+        let message = run(GitCommand::new(["log", "-1", "--format=%B"]).in_dir(root)).await;
+        assert_eq!(
+            message.stdout.trim_end(),
+            "Change line 2\n\nOnly the first hunk.\n\nThe rest waits."
+        );
         let unstaged = run(diff::diff_command(root, "a.vhd", false, Default::default())).await;
         assert!(unstaged.stdout.contains("+line 28 changed"));
     }
