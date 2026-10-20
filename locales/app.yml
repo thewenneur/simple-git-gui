@@ -359,9 +359,21 @@ changes.stage_all:
 commit.title:
   en: "Describe this change"
   fr: "Décrire ce changement"
-commit.placeholder:
-  en: "What did you change, and why?"
-  fr: "Qu'avez-vous changé, et pourquoi ?"
+commit.summary_placeholder:
+  en: "Summary: what changed, in a few words"
+  fr: "Titre : ce qui change, en quelques mots"
+commit.description_placeholder:
+  en: "Description (optional): why, and what a reader should know"
+  fr: "Description (facultative) : pourquoi, et ce qu'il faut savoir"
+commit.summary_long:
+  en: "Over 50 characters: lists will shorten the title. Details go in the description."
+  fr: "Plus de 50 caractères : les listes raccourciront le titre. Les détails vont dans la description."
+commit.summary_too_long:
+  en: "Over 72 characters: most Git tools cut the title. Keep it short."
+  fr: "Plus de 72 caractères : la plupart des outils Git coupent le titre. Faites court."
+commit.body_long_lines:
+  en: "Some description lines are over 72 characters; terminals will not wrap them."
+  fr: "Certaines lignes de la description dépassent 72 caractères ; les terminaux ne les replieront pas."
 commit.button_none:
   en: "Save (include files first)"
   fr: "Enregistrer (incluez d'abord des fichiers)"
@@ -744,6 +756,45 @@ config.crlf_true:
 config.crlf_false:
   en: "Change nothing (false)"
   fr: "Ne rien changer (false)"
+config.section_credentials:
+  en: "Passwords and tokens"
+  fr: "Mots de passe et jetons"
+config.credential:
+  en: "Remember server passwords"
+  fr: "Retenir les mots de passe des serveurs"
+config.credential_hint:
+  en: "Where git keeps the password or token of a server so it doesn't ask at each get or send. The system's safe is best; the plain-text file can be read by anyone with access to your account."
+  fr: "Où git garde le mot de passe ou le jeton d'un serveur pour ne pas le redemander à chaque récupération ou envoi. Le coffre du système est le meilleur choix ; le fichier en clair est lisible par quiconque a accès à votre compte."
+config.cred_manager:
+  en: "Git Credential Manager (manager)"
+  fr: "Git Credential Manager (manager)"
+config.cred_wincred:
+  en: "Windows credential vault (wincred)"
+  fr: "Coffre d'identifiants Windows (wincred)"
+config.cred_osxkeychain:
+  en: "macOS Keychain (osxkeychain)"
+  fr: "Trousseau macOS (osxkeychain)"
+config.cred_cache:
+  en: "In memory for one hour (cache)"
+  fr: "En mémoire pendant une heure (cache)"
+config.cred_store:
+  en: "Plain-text file, not protected (store)"
+  fr: "Fichier en clair, non protégé (store)"
+config.renormalize:
+  en: "Fix line endings of saved files"
+  fr: "Corriger les fins de ligne des fichiers enregistrés"
+config.renormalize_hint:
+  en: "Saves every file again with the current line-ending rules (the setting above and .gitattributes), for a repository where Windows and Linux endings got mixed. The fixed files go to « Included in the save »: save them in one commit, and Ctrl+Z puts things back."
+  fr: "Réenregistre chaque fichier avec les règles de fins de ligne actuelles (le réglage ci-dessus et .gitattributes), pour un dépôt où fins de ligne Windows et Linux se sont mélangées. Les fichiers corrigés passent dans « Inclus dans l'enregistrement » : enregistrez-les en un commit, et Ctrl+Z remet tout comme avant."
+config.renormalize_button:
+  en: "Fix line endings"
+  fr: "Corriger les fins de ligne"
+config.renormalized:
+  en: "Line endings fixed: the changed files are in « Included in the save ». If none appear, every file already followed the rules."
+  fr: "Fins de ligne corrigées : les fichiers concernés sont dans « Inclus dans l'enregistrement ». S'il n'y en a aucun, tous suivaient déjà les règles."
+undo.renormalize:
+  en: "Fix line endings"
+  fr: "Corriger les fins de ligne"
 config.enabled:
   en: "Enabled"
   fr: "Activé"

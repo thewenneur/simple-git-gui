@@ -71,7 +71,9 @@ cargo run --release -- ~/project    # opens this repository directly
   shown as moved instead of deleted and re-added, code colored by language (VHDL,
   Verilog, Tcl/XDC, C, Python...). **Open large** shows a diff over the whole window,
   optionally the whole file with its changes.
-- Stage a whole file or a single block, write the message and commit.
+- Stage a whole file or a single block, write the message (a short summary, with a
+  length hint at 50 and 72 characters, and an optional description) and commit. Lists
+  show the summary only, shortened with "…"; the commit details show the whole message.
 - **Get** and **Send**: fetch then integrate (rebase by default, or merge), and a guided
   send that shows what will go to the server before pushing. A conflict can be aborted
   in one click.
@@ -79,8 +81,11 @@ cargo run --release -- ~/project    # opens this repository directly
   next send.
 - Right-click a file to ignore it (the file, its extension or its folder), shared in
   `.gitignore` or only for you in `.git/info/exclude`.
-- An explained **Git configuration** screen (identity, sync, conflicts, line endings),
-  per repository or for every repository, showing the exact `git config` command.
+- An explained **Git configuration** screen (identity, sync, where server passwords are
+  kept, conflicts, line endings), per repository or for every repository, showing the
+  exact `git config` command. One click fixes the line endings of files already saved
+  in a repository where Windows and Linux endings got mixed (`git add --renormalize`,
+  undoable with Ctrl+Z).
 - **Servers (remotes)**: add, rename, change the address (and a separate send address),
   remove and test a server, each with its command shown and undoable with Ctrl+Z.
 - **History and branches**: a branch graph of every branch, the details of a commit
@@ -168,11 +173,13 @@ The roadmap is in [docs/PLAN.md](docs/PLAN.md).
   `src/app/modules.rs` (submodules, locked files and `.gitignore` templates),
   `src/app/remotes.rs` (servers card and new repository form), `src/app/worktrees.rs`
   (workspaces screen), `src/app/viewer.rs` (large diff view, project at a commit),
+  `src/app/message.rs` (commit message: summary and description),
   `src/app/tutorial.rs` (tracks, lessons, guide card, highlights).
 - `src/settings.rs`: the app's own settings (`settings.txt` in the configuration folder,
   or in `SIMPLE_GIT_CONFIG_DIR`).
 - `src/ui/style.rs`: light and dark palettes, fonts and widget styles; `src/ui/icons.rs`: icons;
-  `src/ui/syntax.rs`: syntax highlighting.
+  `src/ui/syntax.rs`: syntax highlighting; `src/ui/ellipsis.rs`: one line of text ended
+  with "…" when too long.
 - `assets/fonts/`: IBM Plex Sans and Mono (SIL OFL 1.1 license, see `OFL.txt`).
 - `locales/app.yml`: every UI text, in English and French side by side. A test checks that
   every key exists in both languages and that every key used in the code exists.

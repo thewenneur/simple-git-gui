@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 # Both renderers are built; main.rs picks one per platform to save memory
 # (see `choose_renderer`).
-iced = { version = "0.14.0", features = ["tokio", "svg", "canvas"] }
+iced = { version = "0.14.0", features = ["tokio", "svg", "canvas", "advanced"] }
 libc = "0.2.191"
 png = "0.17"
 rfd = "0.17.2"

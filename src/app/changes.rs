@@ -2,7 +2,7 @@
 //! next commit, the commit form, and the diff of the selected file.
 
 use iced::widget::text::{LineHeight, Wrapping};
-use iced::widget::{column, mouse_area, rich_text, row, span, text_editor};
+use iced::widget::{column, mouse_area, rich_text, row, span};
 
 use super::undo::Undoable;
 use super::*;
@@ -19,6 +19,8 @@ const MAX_PREVIEW_BYTES: u64 = 2 * 1024 * 1024;
 /// Lines drawn at most in the diff panel, to keep the interface fluid.
 const MAX_DIFF_LINES: usize = 4000;
 const LINE_HEIGHT: f32 = 22.0;
+/// The commit form's description box, focused when Enter is pressed in the summary.
+pub(super) const DESCRIPTION_INPUT: &str = "commit-description";
 
 /// A file of the list: the same path can appear twice, once with its staged
 /// part and once with the rest.
@@ -293,12 +295,12 @@ impl App {
         let Some(repo) = &self.repo else {
             return Task::none();
         };
-        let message = repo.commit_message.text().trim().to_string();
-        if message.is_empty() {
+        let draft = &repo.commit_message;
+        if draft.is_empty() {
             return Task::none();
         }
-        let command = ops::commit(&repo.paths.root, &message);
-        let summary = message.lines().next().unwrap_or_default();
+        let summary = draft.summary();
+        let command = ops::commit(&repo.paths.root, summary, &draft.description());
         let undoable = Undoable::new(
             t!("undo.commit", message = clip_chars(summary, 48)).into_owned(),
             Moves::Commit,
@@ -702,10 +704,9 @@ impl App {
         p: &'static Palette,
     ) -> Element<'a, Message> {
         let staged = status.entries.iter().filter(|e| e.has_staged()).count();
-        let message = repo.commit_message.text();
-        let message = message.trim();
+        let draft = &repo.commit_message;
         let can_commit =
-            self.idle() && staged > 0 && !message.is_empty() && status.conflicts().next().is_none();
+            self.idle() && staged > 0 && !draft.is_empty() && status.conflicts().next().is_none();
         let label = match staged {
             0 => t!("commit.button_none").into_owned(),
             1 => t!("commit.button_one").into_owned(),
@@ -713,7 +714,16 @@ impl App {
         };
         let preview = ops::commit(
             &repo.paths.root,
-            if message.is_empty() { "…" } else { message },
+            if draft.is_empty() {
+                "…"
+            } else {
+                draft.summary()
+            },
+            if draft.description().is_empty() {
+                ""
+            } else {
+                "…"
+            },
         )
         .display();
 
@@ -722,20 +732,7 @@ impl App {
                 text(t!("commit.title"))
                     .size(13)
                     .font(sans(Weight::Semibold)),
-                text_editor(&repo.commit_message)
-                    .placeholder(t!("commit.placeholder"))
-                    .on_action(Message::CommitEdit)
-                    .key_binding(|press| {
-                        if super::undo::is_undo_key(&press.key, press.modifiers) {
-                            None
-                        } else {
-                            text_editor::Binding::from_key_press(press)
-                        }
-                    })
-                    .height(76)
-                    .size(13)
-                    .padding([8, 10])
-                    .style(style::editor),
+                draft.view(Message::CommitEdit, DESCRIPTION_INPUT, 76.0, p),
                 button(centered(
                     container(text(label).font(sans(Weight::Semibold)))
                         .width(Length::Fill)

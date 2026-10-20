@@ -86,6 +86,15 @@ pub const SECTIONS: &[(&str, &[Setting])] = &[
         }],
     ),
     (
+        "credentials",
+        &[Setting {
+            key: "credential.helper",
+            id: "credential",
+            kind: Kind::Choice(CREDENTIAL_HELPERS),
+            recommended: RECOMMENDED_HELPER,
+        }],
+    ),
+    (
         "conflicts",
         &[
             Setting {
@@ -130,6 +139,37 @@ pub const SECTIONS: &[(&str, &[Setting])] = &[
         }],
     ),
 ];
+
+/// Where git keeps passwords and tokens for the servers, per system: the
+/// helpers git ships with there, then the plain-text file.
+#[cfg(windows)]
+const CREDENTIAL_HELPERS: &[(&str, &str)] = &[
+    ("manager", "config.cred_manager"),
+    ("wincred", "config.cred_wincred"),
+    ("store", "config.cred_store"),
+];
+#[cfg(windows)]
+const RECOMMENDED_HELPER: Option<&str> = Some("manager");
+
+#[cfg(target_os = "macos")]
+const CREDENTIAL_HELPERS: &[(&str, &str)] = &[
+    ("osxkeychain", "config.cred_osxkeychain"),
+    ("manager", "config.cred_manager"),
+    ("cache --timeout=3600", "config.cred_cache"),
+    ("store", "config.cred_store"),
+];
+#[cfg(target_os = "macos")]
+const RECOMMENDED_HELPER: Option<&str> = Some("osxkeychain");
+
+#[cfg(not(any(windows, target_os = "macos")))]
+const CREDENTIAL_HELPERS: &[(&str, &str)] = &[
+    ("cache --timeout=3600", "config.cred_cache"),
+    ("manager", "config.cred_manager"),
+    ("store", "config.cred_store"),
+];
+/// No helper is installed everywhere on Linux: no advice.
+#[cfg(not(any(windows, target_os = "macos")))]
+const RECOMMENDED_HELPER: Option<&str> = None;
 
 /// Every value set, per lowercase key, from the lowest priority (system) to
 /// the highest (local).

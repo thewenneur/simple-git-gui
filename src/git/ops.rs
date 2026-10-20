@@ -44,6 +44,12 @@ pub fn stage_all(root: &Path) -> GitCommand {
     GitCommand::new(["add", "-A"]).in_dir(root)
 }
 
+/// Saves every tracked file again with the current line-ending rules
+/// (`core.autocrlf`, `.gitattributes`): the fixed files are staged.
+pub fn renormalize(root: &Path) -> GitCommand {
+    GitCommand::new(["add", "--renormalize", "--", "."]).in_dir(root)
+}
+
 /// Takes files out of the next commit, keeping their changes on disk.
 pub fn unstage(root: &Path, paths: &[String], has_head: bool) -> GitCommand {
     let base: &[&str] = if has_head {
@@ -65,8 +71,16 @@ pub fn apply_to_index(root: &Path, patch: String, reverse: bool) -> GitCommand {
     GitCommand::new(args).in_dir(root).with_input(patch)
 }
 
-pub fn commit(root: &Path, message: &str) -> GitCommand {
-    GitCommand::new(["commit", "-m", message]).in_dir(root)
+/// `git commit -m <summary> [-m <description>]`: Git joins the two with a
+/// blank line.
+pub fn commit(root: &Path, summary: &str, description: &str) -> GitCommand {
+    let mut command = GitCommand::new(["commit", "-m", summary]);
+    if !description.is_empty() {
+        command
+            .args
+            .extend(["-m".to_string(), description.to_string()]);
+    }
+    command.in_dir(root)
 }
 
 pub fn remotes(root: &Path) -> GitCommand {
@@ -289,8 +303,18 @@ mod tests {
 
         let r = run(apply_to_index(root, parsed.hunk_patch(0).unwrap(), false)).await;
         assert!(r.success());
-        let r = run(commit(root, "Change line 2")).await;
+        let r = run(commit(
+            root,
+            "Change line 2",
+            "Only the first hunk.\n\nThe rest waits.",
+        ))
+        .await;
         assert!(r.success(), "{}", r.stderr);
+        let message = run(GitCommand::new(["log", "-1", "--format=%B"]).in_dir(root)).await;
+        assert_eq!(
+            message.stdout.trim_end(),
+            "Change line 2\n\nOnly the first hunk.\n\nThe rest waits."
+        );
         let unstaged = run(diff::diff_command(root, "a.vhd", false, Default::default())).await;
         assert!(unstaged.stdout.contains("+line 28 changed"));
     }
@@ -414,5 +438,26 @@ mod tests {
             "Author identity unknown\n\n*** Please tell me who you are."
         ));
         assert!(!is_missing_identity("nothing to commit"));
+    }
+
+    /// A file stored with Windows line endings is staged again with Linux
+    /// ones once `.gitattributes` asks for normalized text.
+    #[tokio::test]
+    async fn renormalize_stages_files_with_other_line_endings() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path();
+        new_repo(root).await;
+        git(root, &["config", "core.autocrlf", "false"]).await;
+        std::fs::write(root.join("a.vhd"), "one\r\ntwo\r\n").unwrap();
+        std::fs::write(root.join("b.vhd"), "one\ntwo\n").unwrap();
+        git(root, &["add", "."]).await;
+        git(root, &["commit", "-q", "-m", "init"]).await;
+        std::fs::write(root.join(".gitattributes"), "* text=auto\n").unwrap();
+
+        assert!(run(renormalize(root)).await.success());
+        let staged = git(root, &["diff", "--cached", "--name-only"]).await.stdout;
+        assert_eq!(staged.lines().collect::<Vec<_>>(), ["a.vhd"]);
+        let stored = git(root, &["show", ":a.vhd"]).await.stdout;
+        assert_eq!(stored, "one\ntwo\n");
     }
 }
