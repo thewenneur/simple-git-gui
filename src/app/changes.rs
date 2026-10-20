@@ -792,10 +792,23 @@ impl App {
             .size(12)
             .color(p.muted)
             .width(Length::Fill),
-            container(views).padding(1).style(style::segmented_frame),
         ]
         .spacing(10)
         .align_y(Alignment::Center);
+        let can_enlarge = repo.diff.as_ref().is_some_and(|v| {
+            matches!(v.kind, DiffKind::Text | DiffKind::Untracked)
+                && !v.diff.binary
+                && !v.diff.is_empty()
+        });
+        let toolbar = toolbar
+            .push(can_enlarge.then(|| {
+                button(centered(text(t!("viewer.open_large")).size(12)))
+                    .padding([0, 10])
+                    .height(28)
+                    .on_press(Message::Viewer(super::viewer::Msg::OpenChanges))
+                    .style(style::secondary)
+            }))
+            .push(container(views).padding(1).style(style::segmented_frame));
 
         let mut legend = row![].spacing(14).align_y(Alignment::Center);
         for (tint, key) in [
@@ -1048,7 +1061,7 @@ fn line_look(line: &Line, p: &'static Palette) -> (Color, Color, Color, &'static
     }
 }
 
-fn number<'a>(n: Option<u32>, color: Color) -> Element<'a, Message> {
+pub(super) fn number<'a>(n: Option<u32>, color: Color) -> Element<'a, Message> {
     container(
         text(n.map(|n| n.to_string()).unwrap_or_default())
             .size(13)
