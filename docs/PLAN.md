@@ -44,5 +44,5 @@ repository, file status, history.
 
 ## 4. Submodules and trade-specific needs
 Submodules (add, update, sync, status), Git LFS and file locking for design binaries,
-Vivado/Quartus `.gitignore` templates, portable Windows/macOS/Linux executables via
+`.gitignore` templates, portable Windows/macOS/Linux executables via
 GitHub Actions.
