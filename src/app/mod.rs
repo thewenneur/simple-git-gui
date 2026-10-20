@@ -4,16 +4,24 @@
 //! sections and branches, the current section, and the dark Git journal at
 //! the bottom.
 
+mod changes;
+mod sync;
+
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use iced::font::Weight;
 use iced::theme::Mode;
 use iced::widget::{
-    Space, button, checkbox, column, container, row, scrollable, space, text, text_input, tooltip,
+    Space, button, checkbox, column, container, opaque, row, scrollable, space, stack, text,
+    text_editor, text_input, tooltip,
 };
 use iced::{Alignment, Color, Element, Length, Padding, Subscription, Task, Theme};
 
+use crate::git::diff::DiffOptions;
+use crate::git::ignore::IgnoreTarget;
+use crate::git::ops;
 use crate::git::repo::{self, Branch, Commit, Operation, RepoPaths};
 use crate::git::runner::{CommandRecord, GitCommand, run};
 use crate::git::status::{EntryKind, FileEntry, Status};
@@ -48,9 +56,15 @@ pub struct App {
     /// A user-visible action is running; most buttons are disabled meanwhile.
     busy: Option<String>,
     error: Option<String>,
+    /// Success message of the last action (e.g. "Sent to origin").
+    notice: Option<String>,
     clone_url: String,
     clone_parent: Option<PathBuf>,
     console_input: String,
+    diff_options: DiffOptions,
+    side_by_side: bool,
+    ignore_target: IgnoreTarget,
+    send: Option<sync::SendWizard>,
 }
 
 struct OpenRepo {
@@ -60,8 +74,61 @@ struct OpenRepo {
     commits: Vec<Commit>,
     branches: Vec<Branch>,
     section: Section,
+    remotes: Vec<String>,
+    /// Lines added and removed per file, staged and not staged.
+    numstat_staged: HashMap<String, (u32, u32)>,
+    numstat_unstaged: HashMap<String, (u32, u32)>,
+    selected: Option<changes::Selection>,
+    diff: Option<changes::DiffView>,
+    commit_message: text_editor::Content,
+    ignore_menu: Option<changes::IgnoreMenu>,
     /// A background refresh is running; avoids piling them up.
     refreshing: bool,
+    /// Increased at each refresh; older results are dropped.
+    generation: u64,
+}
+
+impl OpenRepo {
+    fn new(paths: RepoPaths) -> Self {
+        Self {
+            paths,
+            status: None,
+            operation: None,
+            commits: Vec::new(),
+            branches: Vec::new(),
+            section: Section::Changes,
+            remotes: Vec::new(),
+            numstat_staged: HashMap::new(),
+            numstat_unstaged: HashMap::new(),
+            selected: None,
+            diff: None,
+            commit_message: text_editor::Content::new(),
+            ignore_menu: None,
+            refreshing: false,
+            generation: 0,
+        }
+    }
+}
+
+/// The results of one refresh of the open repository.
+#[derive(Debug, Clone)]
+pub struct Refresh {
+    status: CommandRecord,
+    log: CommandRecord,
+    branches: CommandRecord,
+    remotes: CommandRecord,
+    numstat_staged: CommandRecord,
+    numstat_unstaged: CommandRecord,
+}
+
+/// User actions made of git commands, for the follow-up once they ran.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Action {
+    Stage,
+    Commit,
+    Ignore,
+    Abort,
+    Fetch,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -78,8 +145,7 @@ pub enum Message {
     RepoFolderPicked(Option<PathBuf>),
     Opened(Result<RepoPaths, String>, CommandRecord),
     Tick,
-    /// Status, log and branch list, in that order.
-    Refreshed(PathBuf, Box<[CommandRecord; 3]>),
+    Refreshed(PathBuf, u64, Box<Refresh>),
     SelectSection(Section),
     CloneUrlChanged(String),
     PickCloneParent,
@@ -96,6 +162,31 @@ pub enum Message {
     ClearJournal,
     SetLanguage(Lang),
     DismissError,
+    DismissNotice,
+    SelectFile(changes::Selection),
+    DiffLoaded(PathBuf, Box<changes::DiffView>, Vec<CommandRecord>),
+    StageFile(String, bool),
+    StageAll,
+    ApplyHunk(usize),
+    SetIgnoreWhitespace(bool),
+    SetShowMoves(bool),
+    SetSideBySide(bool),
+    CommitEdit(text_editor::Action),
+    Commit,
+    ActionDone(Action, Vec<CommandRecord>),
+    OpenIgnoreMenu(String),
+    CloseIgnoreMenu,
+    SetIgnoreTarget(IgnoreTarget),
+    SetUntrack(bool),
+    Ignore(crate::git::ignore::IgnoreRule),
+    AbortOperation,
+    Fetch,
+    OpenSend,
+    SendPrepared(Box<sync::Prepared>),
+    SetIntegration(ops::Integration),
+    ConfirmSend,
+    SendDone(Vec<CommandRecord>),
+    CloseSend,
 }
 
 impl App {
@@ -173,15 +264,7 @@ impl App {
                 match result {
                     Ok(paths) => {
                         self.error = None;
-                        self.repo = Some(OpenRepo {
-                            paths,
-                            status: None,
-                            operation: None,
-                            commits: Vec::new(),
-                            branches: Vec::new(),
-                            section: Section::Changes,
-                            refreshing: false,
-                        });
+                        self.repo = Some(OpenRepo::new(paths));
                         self.refresh(false)
                     }
                     Err(e) => {
@@ -191,12 +274,26 @@ impl App {
                 }
             }
             Message::Tick => self.refresh(true),
-            Message::Refreshed(root, records) => {
-                let [status, log, branches] = *records;
-                let Some(repo) = self.repo.as_mut().filter(|r| r.paths.root == root) else {
+            Message::Refreshed(root, generation, refresh) => {
+                let Refresh {
+                    status,
+                    log,
+                    branches,
+                    remotes,
+                    numstat_staged,
+                    numstat_unstaged,
+                } = *refresh;
+                let Some(repo) = self
+                    .repo
+                    .as_mut()
+                    .filter(|r| r.paths.root == root && r.generation == generation)
+                else {
                     return Task::none();
                 };
                 repo.refreshing = false;
+                repo.remotes = remotes.stdout.lines().map(str::to_string).collect();
+                repo.numstat_staged = ops::parse_numstat(&numstat_staged.stdout);
+                repo.numstat_unstaged = ops::parse_numstat(&numstat_unstaged.stdout);
                 repo.operation = repo::operation_in_progress(&repo.paths.git_dir);
                 match repo::parse_status(&status) {
                     Ok(s) => repo.status = Some(s),
@@ -209,10 +306,17 @@ impl App {
                     Vec::new()
                 };
                 repo.branches = repo::parse_branches(&branches.stdout);
-                self.log(status);
-                self.log(log);
-                self.log(branches);
-                Task::none()
+                for record in [
+                    status,
+                    log,
+                    branches,
+                    remotes,
+                    numstat_staged,
+                    numstat_unstaged,
+                ] {
+                    self.log(record);
+                }
+                self.sync_selection()
             }
             Message::SelectSection(section) => {
                 if let Some(repo) = &mut self.repo {
@@ -330,7 +434,152 @@ impl App {
                 self.error = None;
                 Task::none()
             }
+            Message::DismissNotice => {
+                self.notice = None;
+                Task::none()
+            }
+            Message::SelectFile(selection) => self.select_file(selection),
+            Message::DiffLoaded(root, view, records) => self.diff_loaded(root, *view, records),
+            Message::StageFile(path, stage) => self.stage_file(path, stage),
+            Message::StageAll => self.stage_all(),
+            Message::ApplyHunk(index) => self.apply_hunk(index),
+            Message::SetIgnoreWhitespace(on) => {
+                self.diff_options.ignore_whitespace = on;
+                self.load_selected_diff(false)
+            }
+            Message::SetShowMoves(on) => {
+                self.diff_options.detect_moves = on;
+                self.load_selected_diff(false)
+            }
+            Message::SetSideBySide(on) => {
+                self.side_by_side = on;
+                Task::none()
+            }
+            Message::CommitEdit(action) => {
+                if let Some(repo) = &mut self.repo {
+                    repo.commit_message.perform(action);
+                }
+                Task::none()
+            }
+            Message::Commit => self.commit(),
+            Message::ActionDone(action, records) => self.action_done(action, records),
+            Message::OpenIgnoreMenu(path) => self.open_ignore_menu(path),
+            Message::CloseIgnoreMenu => {
+                if let Some(repo) = &mut self.repo {
+                    repo.ignore_menu = None;
+                }
+                Task::none()
+            }
+            Message::SetIgnoreTarget(target) => {
+                self.ignore_target = target;
+                Task::none()
+            }
+            Message::SetUntrack(on) => {
+                if let Some(menu) = self.repo.as_mut().and_then(|r| r.ignore_menu.as_mut()) {
+                    menu.untrack = on;
+                }
+                Task::none()
+            }
+            Message::Ignore(rule) => self.ignore(rule),
+            Message::AbortOperation => {
+                let Some(repo) = &self.repo else {
+                    return Task::none();
+                };
+                let Some(op) = repo.operation else {
+                    return Task::none();
+                };
+                let command = ops::abort(&repo.paths.root, op);
+                self.perform(
+                    Action::Abort,
+                    Some(t!("busy.aborting").into_owned()),
+                    vec![command],
+                )
+            }
+            Message::Fetch => self.fetch(),
+            Message::OpenSend => self.open_send(),
+            Message::SendPrepared(prepared) => self.send_prepared(*prepared),
+            Message::SetIntegration(how) => {
+                if let Some(w) = &mut self.send {
+                    w.how = how;
+                }
+                Task::none()
+            }
+            Message::ConfirmSend => self.confirm_send(),
+            Message::SendDone(records) => self.send_done(records),
+            Message::CloseSend => {
+                self.send = None;
+                self.busy = None;
+                Task::none()
+            }
         }
+    }
+
+    /// Runs a user action: its commands in order, stopping at the first
+    /// failure. `label` is shown while it runs (quick actions show nothing).
+    fn perform(
+        &mut self,
+        action: Action,
+        label: Option<String>,
+        commands: Vec<GitCommand>,
+    ) -> Task<Message> {
+        self.busy = Some(label.unwrap_or_default());
+        self.notice = None;
+        Task::perform(run_all(commands), move |records| {
+            Message::ActionDone(action, records)
+        })
+    }
+
+    fn action_done(&mut self, action: Action, records: Vec<CommandRecord>) -> Task<Message> {
+        self.busy = None;
+        let failed = records.last().filter(|r| !r.success()).map(|r| {
+            (
+                r.command.args.first().cloned(),
+                r.error_summary(),
+                r.stderr.clone(),
+            )
+        });
+        let fetched = records
+            .iter()
+            .any(|r| r.command.args.first().is_some_and(|a| a == "fetch"));
+        let integrated = records.iter().any(|r| {
+            r.command
+                .args
+                .first()
+                .is_some_and(|a| a == "rebase" || a == "merge")
+        });
+        for record in records {
+            self.log(record);
+        }
+        match failed {
+            Some((_, _, stderr))
+                if action == Action::Commit && ops::is_missing_identity(&stderr) =>
+            {
+                self.error = Some(t!("error.identity").into_owned());
+            }
+            Some((Some(verb), detail, _)) if verb == "rebase" || verb == "merge" => {
+                self.error = Some(t!("error.integrate_conflict", detail = detail).into_owned());
+            }
+            Some((_, detail, _)) if action == Action::Fetch => {
+                self.error = Some(t!("error.fetch_failed", detail = detail).into_owned());
+            }
+            Some((_, detail, _)) => self.error = Some(detail),
+            None => match action {
+                Action::Commit => {
+                    if let Some(repo) = &mut self.repo {
+                        repo.commit_message = text_editor::Content::new();
+                    }
+                }
+                Action::Fetch if fetched => {
+                    self.notice = Some(if integrated {
+                        t!("sync.integrated").into_owned()
+                    } else {
+                        t!("sync.nothing_new").into_owned()
+                    });
+                }
+                _ => {}
+            },
+        }
+        self.refresh(false)
     }
 
     fn log(&mut self, record: CommandRecord) {
@@ -359,21 +608,46 @@ impl App {
         let Some(repo) = &mut self.repo else {
             return Task::none();
         };
-        if repo.refreshing {
+        // A background refresh waits for the running one; a refresh after an
+        // action replaces it, so its result is never older than the action.
+        if repo.refreshing && background {
             return Task::none();
         }
         repo.refreshing = true;
+        repo.generation += 1;
+        let generation = repo.generation;
         let root = repo.paths.root.clone();
-        let [status, log, branches] = [
+        let [status, log, branches, remotes, staged, unstaged] = [
             repo::status_command(&root),
             repo::log_command(&root, LOG_LIMIT),
             repo::branches_command(&root),
+            ops::remotes(&root),
+            ops::numstat(&root, true),
+            ops::numstat(&root, false),
         ]
         .map(|c| if background { c.background() } else { c });
         Task::perform(
             async move {
-                let (status, log, branches) = tokio::join!(run(status), run(log), run(branches));
-                Message::Refreshed(root, Box::new([status, log, branches]))
+                let (status, log, branches, remotes, numstat_staged, numstat_unstaged) = tokio::join!(
+                    run(status),
+                    run(log),
+                    run(branches),
+                    run(remotes),
+                    run(staged),
+                    run(unstaged)
+                );
+                Message::Refreshed(
+                    root,
+                    generation,
+                    Box::new(Refresh {
+                        status,
+                        log,
+                        branches,
+                        remotes,
+                        numstat_staged,
+                        numstat_unstaged,
+                    }),
+                )
             },
             |message| message,
         )
@@ -414,7 +688,24 @@ impl App {
                 .style(style::banner_error),
             );
         }
-        if let Some(busy) = &self.busy {
+        if let Some(notice) = &self.notice {
+            content = content.push(
+                container(
+                    row![
+                        text(notice).width(Length::Fill),
+                        button(text(t!("common.ok")).font(sans(Weight::Semibold)))
+                            .on_press(Message::DismissNotice)
+                            .style(style::link),
+                    ]
+                    .align_y(Alignment::Center)
+                    .spacing(10),
+                )
+                .padding([8, 12])
+                .width(Length::Fill)
+                .style(style::banner_info),
+            );
+        }
+        if let Some(busy) = self.busy.as_ref().filter(|b| !b.is_empty()) {
             content = content.push(
                 container(text(busy))
                     .padding([8, 12])
@@ -441,15 +732,36 @@ impl App {
                 .into(),
         };
 
-        container(column![
+        let page = container(column![
             self.top_bar(p),
             hline(style::strong_separator),
             body
         ])
         .width(Length::Fill)
         .height(Length::Fill)
-        .style(style::page)
-        .into()
+        .style(style::page);
+
+        let dialog = match (
+            &self.send,
+            self.repo.as_ref().and_then(|r| r.ignore_menu.as_ref()),
+        ) {
+            (Some(wizard), _) => Some(self.send_dialog(wizard, p)),
+            (None, Some(menu)) => Some(self.ignore_dialog(menu, p)),
+            (None, None) => None,
+        };
+        match dialog {
+            Some(dialog) => stack![
+                page,
+                opaque(
+                    container(dialog)
+                        .center(Length::Fill)
+                        .padding(40)
+                        .style(style::backdrop)
+                )
+            ]
+            .into(),
+            None => page.into(),
+        }
     }
 
     fn top_bar(&self, p: &'static Palette) -> Element<'_, Message> {
@@ -467,9 +779,6 @@ impl App {
                 row![
                     icon(Icon::Folder, 16.0, p.text_2),
                     text(folder_name(&repo.paths.root)).font(sans(Weight::Medium)),
-                    text(short_path(&repo.paths.root, 40))
-                        .size(12)
-                        .color(p.muted),
                     icon(Icon::ChevronDown, 12.0, p.text_2),
                 ]
                 .spacing(8)
@@ -481,9 +790,18 @@ impl App {
             .style(style::repo_pill);
             bar = bar.push(tooltip(
                 repo_button,
-                container(text(t!("toolbar.change_repo")).size(12))
-                    .padding([4, 8])
-                    .style(style::card),
+                container(
+                    column![
+                        text(t!("toolbar.change_repo")).size(12),
+                        text(repo.paths.root.display().to_string())
+                            .size(11)
+                            .font(style::MONO)
+                            .color(p.muted),
+                    ]
+                    .spacing(2),
+                )
+                .padding([4, 8])
+                .style(style::card),
                 tooltip::Position::Bottom,
             ));
             if let Some(status) = &repo.status {
@@ -492,6 +810,51 @@ impl App {
         }
 
         bar = bar.push(space::horizontal());
+
+        if let Some(status) = self.repo.as_ref().and_then(|r| r.status.as_ref()) {
+            let mut fetch = row![icon(Icon::Fetch, 16.0, p.text), text(t!("toolbar.fetch"))]
+                .spacing(8)
+                .align_y(Alignment::Center);
+            if status.branch.behind > 0 {
+                fetch = fetch.push(
+                    container(
+                        text(status.branch.behind.to_string())
+                            .size(12)
+                            .font(sans(Weight::Semibold)),
+                    )
+                    .padding([0, 6])
+                    .style(style::badge(p.accent.soft, p.accent.text)),
+                );
+            }
+            let mut send = row![
+                icon(Icon::Send, 16.0, Color::WHITE),
+                text(t!("toolbar.send")).font(sans(Weight::Semibold))
+            ]
+            .spacing(8)
+            .align_y(Alignment::Center);
+            if status.branch.ahead > 0 {
+                send = send.push(
+                    container(text(status.branch.ahead.to_string()).size(12))
+                        .padding([0, 6])
+                        .style(style::badge(Color::WHITE, p.accent.strong)),
+                );
+            }
+            bar = bar
+                .push(
+                    button(centered(fetch))
+                        .padding([0, 14])
+                        .height(36)
+                        .on_press_maybe(self.can_fetch().then_some(Message::Fetch))
+                        .style(style::secondary),
+                )
+                .push(
+                    button(centered(send))
+                        .padding([0, 16])
+                        .height(36)
+                        .on_press_maybe(self.can_send().then_some(Message::OpenSend))
+                        .style(style::primary),
+                );
+        }
 
         let mut langs = row![].height(36);
         for lang in Lang::ALL {
@@ -513,6 +876,7 @@ impl App {
         bar = bar.push(
             checkbox(self.advanced)
                 .label(t!("toolbar.advanced"))
+                .text_wrapping(iced::widget::text::Wrapping::None)
                 .size(16)
                 .spacing(8)
                 .on_toggle(Message::ToggleAdvanced)
@@ -676,126 +1040,33 @@ impl App {
         let mut view = column![].spacing(12).height(Length::Fill);
         if let Some(op) = repo.operation {
             view = view.push(
-                container(text(tr(op.key())).font(sans(Weight::Medium)))
-                    .padding([8, 12])
-                    .width(Length::Fill)
-                    .style(style::banner_warning),
+                container(
+                    row![
+                        text(tr(op.key()))
+                            .font(sans(Weight::Medium))
+                            .width(Length::Fill),
+                        button(centered(text(t!("op.abort")).size(13)))
+                            .padding([0, 12])
+                            .height(32)
+                            .on_press_maybe(self.idle().then_some(Message::AbortOperation))
+                            .style(style::secondary),
+                    ]
+                    .spacing(12)
+                    .align_y(Alignment::Center),
+                )
+                .padding([8, 12])
+                .width(Length::Fill)
+                .style(style::banner_warning),
             );
         }
         let section = match repo.section {
             Section::Changes => match &repo.status {
-                Some(status) => self.changes_view(status, p),
+                Some(status) => self.changes_view(repo, status, p),
                 None => text(t!("repo.reading_status")).color(p.muted).into(),
             },
             Section::History => self.history_view(&repo.commits, p),
         };
         view.push(section).into()
-    }
-
-    fn changes_view<'a>(&'a self, status: &'a Status, p: &'static Palette) -> Element<'a, Message> {
-        let conflicts: Vec<_> = status.conflicts().collect();
-        let staged: Vec<_> = status.entries.iter().filter(|e| e.has_staged()).collect();
-        let unstaged: Vec<_> = status
-            .entries
-            .iter()
-            .filter(|e| {
-                matches!(e.kind, EntryKind::Tracked | EntryKind::Untracked) && e.has_unstaged()
-            })
-            .collect();
-
-        let header = row![
-            text(t!("changes.title"))
-                .size(15)
-                .font(sans(Weight::Semibold))
-        ]
-        .align_y(Alignment::Center);
-
-        let mut list = column![];
-        if conflicts.is_empty() && staged.is_empty() && unstaged.is_empty() {
-            list = list.push(container(text(t!("changes.none")).color(p.muted)).padding([16, 14]));
-        }
-        for (key, color, entries) in [
-            ("changes.conflicts", p.removed.strong, conflicts),
-            ("changes.staged", p.added.strong, staged),
-            ("changes.unstaged", p.text_2, unstaged),
-        ] {
-            if entries.is_empty() {
-                continue;
-            }
-            list = list.push(
-                container(
-                    row![
-                        text(tr(key).to_uppercase())
-                            .size(12)
-                            .font(sans(Weight::Semibold))
-                            .color(color),
-                        text(tr(&format!("{key}_hint")))
-                            .size(11)
-                            .font(style::MONO)
-                            .color(p.muted),
-                    ]
-                    .spacing(8)
-                    .align_y(Alignment::Center),
-                )
-                .padding(Padding::from([4, 14]).top(12)),
-            );
-            for entry in entries {
-                list = list.push(self.file_row(entry, p));
-            }
-        }
-
-        container(column![
-            container(header).padding([12, 14]),
-            hline(style::separator),
-            scrollable(list.padding(Padding::default().bottom(8)))
-                .style(style::scroll)
-                .height(Length::Fill),
-        ])
-        .max_width(760)
-        .height(Length::Fill)
-        .style(style::card)
-        .into()
-    }
-
-    fn file_row<'a>(&'a self, entry: &'a FileEntry, p: &'static Palette) -> Element<'a, Message> {
-        let (dir, name) = split_path(&entry.path);
-        let state = lowercase_first(&tr(entry.state_key()));
-        let subtitle = match (&entry.orig_path, dir) {
-            (Some(orig), _) => format!("{orig} → · {state}"),
-            (None, Some(dir)) => format!("{dir}/ · {state}"),
-            (None, None) => state,
-        };
-
-        let mut line = row![
-            column![
-                text(name.to_string()).size(13).font(mono(Weight::Medium)),
-                text(subtitle).size(12).color(p.muted),
-            ]
-            .width(Length::Fill),
-        ]
-        .spacing(10)
-        .align_y(Alignment::Center);
-
-        if entry.kind == EntryKind::Untracked {
-            line = line.push(
-                container(
-                    text(t!("changes.new_badge"))
-                        .size(11)
-                        .font(sans(Weight::Semibold)),
-                )
-                .padding([1, 6])
-                .style(style::badge(p.added.soft, p.added.strong)),
-            );
-        }
-        if self.advanced {
-            line = line.push(
-                text(entry.xy.clone())
-                    .size(12)
-                    .font(style::MONO)
-                    .color(p.muted),
-            );
-        }
-        container(line).padding([8, 14]).into()
     }
 
     fn history_view<'a>(
@@ -1028,17 +1299,6 @@ fn centered<'a>(content: impl Into<Element<'a, Message>>) -> Element<'a, Message
         .into()
 }
 
-/// Shortens a long path from the left: `…/scratchpad/carte-fpga-uart`.
-fn short_path(path: &Path, max_chars: usize) -> String {
-    let full = path.display().to_string();
-    let count = full.chars().count();
-    if count <= max_chars {
-        return full;
-    }
-    let tail: String = full.chars().skip(count - (max_chars - 1)).collect();
-    format!("…{tail}")
-}
-
 fn caption<'a>(label: String, p: &'static Palette) -> Element<'a, Message> {
     container(
         text(label.to_uppercase())
@@ -1206,6 +1466,20 @@ fn parse_console(input: &str) -> Result<Vec<String>, String> {
         args.remove(0);
     }
     Ok(args)
+}
+
+/// Runs commands one after the other, stopping at the first failure.
+async fn run_all(commands: Vec<GitCommand>) -> Vec<CommandRecord> {
+    let mut records = Vec::new();
+    for command in commands {
+        let record = run(command).await;
+        let ok = record.success();
+        records.push(record);
+        if !ok {
+            break;
+        }
+    }
+    records
 }
 
 async fn pick_folder(title: String) -> Option<PathBuf> {

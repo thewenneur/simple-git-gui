@@ -5,7 +5,7 @@
 //! view code works in both.
 
 use iced::font::Weight;
-use iced::widget::{button, checkbox, container, scrollable, text_input};
+use iced::widget::{button, checkbox, container, scrollable, text_editor, text_input};
 use iced::{Background, Border, Color, Font, Shadow, Theme, color};
 
 pub const SANS: Font = Font::with_name("IBM Plex Sans");
@@ -62,7 +62,12 @@ pub struct Palette {
     pub nav_active_border: Color,
     pub added: Tint,
     pub removed: Tint,
+    /// Lines moved elsewhere in the file (same content).
+    pub moved: Tint,
     pub warning: Tint,
+    /// Background of card footers (commit form).
+    pub surface_alt: Color,
+    pub line_number: Color,
     pub branch_main: Tint,
     pub branch_feature: Tint,
     pub branch_fix: Tint,
@@ -100,6 +105,13 @@ pub const LIGHT: Palette = Palette {
         soft: color!(0xFBE9E7),
         text: color!(0x7A1B12),
     },
+    moved: Tint {
+        strong: color!(0x5534B8),
+        soft: color!(0xEEEAFB),
+        text: color!(0x3C2490),
+    },
+    surface_alt: color!(0xFAFBFC),
+    line_number: color!(0x8893A3),
     warning: Tint {
         strong: color!(0x8A5300),
         soft: color!(0xFFF3D6),
@@ -158,6 +170,13 @@ pub const DARK: Palette = Palette {
         soft: color!(0x3A1A17),
         text: color!(0xF8C7BF),
     },
+    moved: Tint {
+        strong: color!(0xBFAEFF),
+        soft: color!(0x2A2147),
+        text: color!(0xDCD2FF),
+    },
+    surface_alt: color!(0x161C26),
+    line_number: color!(0x6B778A),
     warning: Tint {
         strong: color!(0xF0C674),
         soft: color!(0x3A2E12),
@@ -382,6 +401,126 @@ pub fn banner_warning(theme: &Theme) -> container::Style {
     }
 }
 
+/// A highlighted row (selected file): soft accent with a bar on the left.
+pub fn selected_row(theme: &Theme) -> container::Style {
+    let p = palette(theme);
+    container::Style {
+        background: Some(p.accent.soft.into()),
+        ..container::Style::default()
+    }
+}
+
+pub fn accent_bar(theme: &Theme) -> container::Style {
+    container::Style {
+        background: Some(palette(theme).accent.strong.into()),
+        ..container::Style::default()
+    }
+}
+
+/// Footer of a card, slightly off the surface color.
+pub fn card_footer(theme: &Theme) -> container::Style {
+    let p = palette(theme);
+    container::Style {
+        background: Some(p.surface_alt.into()),
+        border: Border {
+            radius: iced::border::Radius::default()
+                .bottom_left(RADIUS)
+                .bottom_right(RADIUS),
+            ..Border::default()
+        },
+        ..container::Style::default()
+    }
+}
+
+/// Header of a diff hunk.
+pub fn hunk_header(theme: &Theme) -> container::Style {
+    container::Style {
+        background: Some(palette(theme).page.into()),
+        ..container::Style::default()
+    }
+}
+
+/// Background of a diff line.
+pub fn line(background: Color) -> impl Fn(&Theme) -> container::Style {
+    move |_| container::Style {
+        background: Some(background.into()),
+        ..container::Style::default()
+    }
+}
+
+/// A legend swatch: soft fill with a strong border.
+pub fn swatch(tint: Tint) -> impl Fn(&Theme) -> container::Style {
+    move |_| boxed(tint.soft, tint.strong, 3.0)
+}
+
+/// The dimmed backdrop behind a dialog.
+pub fn backdrop(_theme: &Theme) -> container::Style {
+    container::Style {
+        background: Some(Color::from_rgba8(0x10, 0x16, 0x20, 0.55).into()),
+        ..container::Style::default()
+    }
+}
+
+pub fn dialog(theme: &Theme) -> container::Style {
+    let p = palette(theme);
+    container::Style {
+        text_color: Some(p.text),
+        ..boxed(p.surface, p.border, 8.0)
+    }
+}
+
+/// Numbered step marker of a wizard.
+pub fn step_marker(state: StepState) -> impl Fn(&Theme) -> container::Style {
+    move |theme| {
+        let p = palette(theme);
+        match state {
+            StepState::Done => container::Style {
+                text_color: Some(Color::WHITE),
+                ..boxed(p.added.strong, p.added.strong, 14.0)
+            },
+            StepState::Current => container::Style {
+                text_color: Some(Color::WHITE),
+                ..boxed(p.accent.strong, p.accent.strong, 14.0)
+            },
+            StepState::Failed => container::Style {
+                text_color: Some(Color::WHITE),
+                ..boxed(p.removed.strong, p.removed.strong, 14.0)
+            },
+            StepState::Todo => container::Style {
+                text_color: Some(p.muted),
+                background: None,
+                border: border(p.input_border, 2.0, 14.0),
+                ..container::Style::default()
+            },
+        }
+    }
+}
+
+/// Outer ring of a radio-like choice.
+pub fn radio(selected: bool) -> impl Fn(&Theme) -> container::Style {
+    move |theme| {
+        let p = palette(theme);
+        let ring = if selected {
+            p.accent.strong
+        } else {
+            p.input_border
+        };
+        container::Style {
+            background: Some(p.surface.into()),
+            border: border(ring, 1.5, 8.0),
+            ..container::Style::default()
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StepState {
+    Done,
+    Current,
+    Failed,
+    Todo,
+}
+
 // ---- buttons ----
 
 fn button_base(
@@ -477,6 +616,36 @@ pub fn segment(selected: bool) -> impl Fn(&Theme, button::Status) -> button::Sty
     }
 }
 
+/// A selectable option card (radio-like choice in a wizard).
+pub fn choice(selected: bool) -> impl Fn(&Theme, button::Status) -> button::Style {
+    move |theme, status| {
+        let p = palette(theme);
+        if selected {
+            button_base(Some(p.accent.soft), p.text, p.accent.strong, 1.0)
+        } else if matches!(status, button::Status::Hovered) {
+            button_base(Some(p.page), p.text, p.input_border, 1.0)
+        } else {
+            button_base(None, p.text, p.border, 1.0)
+        }
+    }
+}
+
+/// A light selection segment (Unified / Side by side), as in the wireframes.
+pub fn soft_segment(selected: bool) -> impl Fn(&Theme, button::Status) -> button::Style {
+    move |theme, status| {
+        let p = palette(theme);
+        let mut style = if selected {
+            button_base(Some(p.accent.soft), p.accent.text, Color::TRANSPARENT, 0.0)
+        } else if matches!(status, button::Status::Hovered) {
+            button_base(Some(p.page), p.text, Color::TRANSPARENT, 0.0)
+        } else {
+            button_base(Some(p.surface), p.text_2, Color::TRANSPARENT, 0.0)
+        };
+        style.border.radius = 0.0.into();
+        style
+    }
+}
+
 /// Plain text button (links, close).
 pub fn link(theme: &Theme, status: button::Status) -> button::Style {
     let p = palette(theme);
@@ -517,6 +686,22 @@ pub fn input(theme: &Theme, status: text_input::Status) -> text_input::Style {
         background: p.surface.into(),
         border: border(border_color, 1.0, RADIUS),
         icon: p.muted,
+        placeholder: p.muted,
+        value: p.text,
+        selection: p.accent.soft,
+    }
+}
+
+pub fn editor(theme: &Theme, status: text_editor::Status) -> text_editor::Style {
+    let p = palette(theme);
+    let border_color = match status {
+        text_editor::Status::Focused { .. } => p.accent.strong,
+        text_editor::Status::Hovered => p.text_2,
+        _ => p.input_border,
+    };
+    text_editor::Style {
+        background: p.surface.into(),
+        border: border(border_color, 1.0, RADIUS),
         placeholder: p.muted,
         value: p.text,
         selection: p.accent.soft,

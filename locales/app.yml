@@ -294,3 +294,265 @@ pill.unpublished:
 pill.detached:
   en: "detached HEAD"
   fr: "HEAD détaché"
+
+# ---- step 2: everyday actions
+
+common.cancel:
+  en: "Cancel"
+  fr: "Annuler"
+common.close:
+  en: "Close"
+  fr: "Fermer"
+
+toolbar.fetch:
+  en: "Get"
+  fr: "Récupérer"
+toolbar.send:
+  en: "Send"
+  fr: "Envoyer"
+
+busy.committing:
+  en: "Saving…"
+  fr: "Enregistrement…"
+busy.fetching:
+  en: "Getting the work from %{remote}…"
+  fr: "Récupération du travail depuis %{remote}…"
+busy.aborting:
+  en: "Putting everything back as before…"
+  fr: "Retour à l'état d'avant…"
+
+error.identity:
+  en: "Git doesn't know who you are yet. Set your name and email first (git config user.name / user.email), then save again."
+  fr: "Git ne sait pas encore qui vous êtes. Renseignez d'abord votre nom et votre e-mail (git config user.name / user.email), puis enregistrez à nouveau."
+error.fetch_failed:
+  en: "Could not reach the server: %{detail}"
+  fr: "Impossible de joindre le serveur : %{detail}"
+error.push_failed:
+  en: "The server refused the send: %{detail}"
+  fr: "Le serveur a refusé l'envoi : %{detail}"
+error.integrate_conflict:
+  en: "Your work and the server's touch the same lines: the integration stopped and nothing was sent. You can put everything back as before with the button in the yellow banner. (%{detail})"
+  fr: "Votre travail et celui du serveur touchent les mêmes lignes : l'intégration s'est arrêtée et rien n'a été envoyé. Vous pouvez tout remettre comme avant avec le bouton du bandeau jaune. (%{detail})"
+
+op.abort:
+  en: "Stop everything and go back to before"
+  fr: "Tout arrêter et revenir comme avant"
+
+sync.integrated:
+  en: "The server's work was fetched and integrated into yours."
+  fr: "Le travail du serveur a été récupéré et intégré au vôtre."
+sync.nothing_new:
+  en: "Nothing new on the server."
+  fr: "Rien de nouveau sur le serveur."
+
+changes.stage_all:
+  en: "Include all"
+  fr: "Tout inclure"
+
+commit.title:
+  en: "Describe this change"
+  fr: "Décrire ce changement"
+commit.placeholder:
+  en: "What did you change, and why?"
+  fr: "Qu'avez-vous changé, et pourquoi ?"
+commit.button_none:
+  en: "Save (include files first)"
+  fr: "Enregistrer (incluez d'abord des fichiers)"
+commit.button_one:
+  en: "Save 1 file"
+  fr: "Enregistrer 1 fichier"
+commit.button_many:
+  en: "Save %{count} files"
+  fr: "Enregistrer %{count} fichiers"
+
+diff.pick_file:
+  en: "Choose a file to see what changed in it."
+  fr: "Choisissez un fichier pour voir ce qui y a changé."
+diff.loading:
+  en: "Reading the differences…"
+  fr: "Lecture des différences…"
+diff.staged_against:
+  en: "what will be saved, compared to the last save"
+  fr: "ce qui sera enregistré, comparé au dernier enregistrement"
+diff.unstaged_against:
+  en: "not included yet"
+  fr: "pas encore inclus"
+diff.ignore_whitespace:
+  en: "Ignore whitespace"
+  fr: "Ignorer les espaces"
+diff.show_moves:
+  en: "Show moved lines"
+  fr: "Montrer les lignes déplacées"
+diff.unified:
+  en: "Unified"
+  fr: "Unifié"
+diff.side_by_side:
+  en: "Side by side"
+  fr: "Côte à côte"
+diff.legend_added:
+  en: "Added"
+  fr: "Ajouté"
+diff.legend_removed:
+  en: "Removed"
+  fr: "Retiré"
+diff.legend_moved:
+  en: "Moved"
+  fr: "Déplacé"
+diff.in_before:
+  en: "In "
+  fr: "Dans "
+diff.in_after:
+  en: ", lines %{from} to %{to}"
+  fr: ", lignes %{from} à %{to}"
+diff.lines:
+  en: "Lines %{from} to %{to}"
+  fr: "Lignes %{from} à %{to}"
+diff.old_place:
+  en: "Lines %{from} to %{to} (old place of the moved block)"
+  fr: "Lignes %{from} à %{to} (ancienne place du bloc déplacé)"
+diff.moved_from:
+  en: "Moved from line %{line}: identical content, this is not an addition."
+  fr: "Déplacé depuis la ligne %{line} : contenu identique, ce n'est pas un ajout."
+diff.moved_to:
+  en: "Moved to line %{line}: identical content, this is not a removal."
+  fr: "Déplacé vers la ligne %{line} : contenu identique, ce n'est pas une suppression."
+diff.stage_hunk:
+  en: "Include this block"
+  fr: "Inclure ce bloc"
+diff.unstage_hunk:
+  en: "Remove this block"
+  fr: "Retirer ce bloc"
+diff.hunk_needs_exact:
+  en: "Some whitespace changes are hidden here. Untick \"Ignore whitespace\" to include or remove a single block."
+  fr: "Des changements d'espaces sont masqués ici. Décochez « Ignorer les espaces » pour inclure ou retirer un bloc seul."
+diff.truncated:
+  en: "%{count} more lines not shown."
+  fr: "%{count} lignes de plus non affichées."
+diff.binary:
+  en: "Binary file: its content can't be shown as text."
+  fr: "Fichier binaire : son contenu ne peut pas être affiché comme du texte."
+diff.empty:
+  en: "No difference to show."
+  fr: "Aucune différence à afficher."
+diff.whitespace_only:
+  en: "Only whitespace changed in this file. Untick \"Ignore whitespace\" to see it."
+  fr: "Seuls des espaces ont changé dans ce fichier. Décochez « Ignorer les espaces » pour les voir."
+diff.too_large:
+  en: "This file is too large to be shown."
+  fr: "Ce fichier est trop gros pour être affiché."
+diff.conflict:
+  en: "This file is in conflict. The conflict wizard comes in a next version; meanwhile you can go back to before with the button in the banner."
+  fr: "Ce fichier est en conflit. L'assistant de conflit arrive dans une prochaine version ; en attendant, vous pouvez revenir comme avant avec le bouton du bandeau."
+diff.not_a_file:
+  en: "This is not a regular file."
+  fr: "Ce n'est pas un fichier ordinaire."
+diff.untracked_footer:
+  en: "new file: its whole content is shown"
+  fr: "nouveau fichier : tout son contenu est affiché"
+
+ignore.dialog_title:
+  en: "Ignore %{path}"
+  fr: "Ignorer %{path}"
+ignore.intro:
+  en: "Git will stop showing changes to the files matching the rule. The rule is one line added to an ignore file."
+  fr: "Git n'affichera plus les changements des fichiers concernés par la règle. La règle est une ligne ajoutée à un fichier d'exclusion."
+ignore.shared:
+  en: "For the whole team (.gitignore)"
+  fr: "Pour toute l'équipe (.gitignore)"
+ignore.local:
+  en: "Just for me (.git/info/exclude)"
+  fr: "Pour moi seulement (.git/info/exclude)"
+ignore.file:
+  en: "Ignore this file"
+  fr: "Ignorer ce fichier"
+ignore.extension:
+  en: "Ignore all *.%{ext} files"
+  fr: "Ignorer tous les fichiers *.%{ext}"
+ignore.folder:
+  en: "Ignore the folder %{dir}/"
+  fr: "Ignorer le dossier %{dir}/"
+ignore.untrack:
+  en: "Also stop tracking it (git rm --cached): it stays on disk, and its removal from the repository goes into the next save"
+  fr: "Arrêter aussi de le suivre (git rm --cached) : il reste sur le disque, et son retrait du dépôt ira dans le prochain enregistrement"
+
+send.title:
+  en: "Send %{branch}"
+  fr: "Envoyer %{branch}"
+send.commits_one:
+  en: "1 commit"
+  fr: "1 commit"
+send.commits_many:
+  en: "%{count} commits"
+  fr: "%{count} commits"
+send.intro:
+  en: "Before sending, Simple Git always gets the others' work first, so the server never refuses the send."
+  fr: "Avant d'envoyer, Simple Git récupère toujours le travail des autres pour éviter un refus du serveur."
+send.step_fetch:
+  en: "Get from the server"
+  fr: "Récupérer depuis le serveur"
+send.fetching:
+  en: "Looking for the others' work…"
+  fr: "Recherche du travail des autres…"
+send.fetch_failed:
+  en: "The server could not be reached."
+  fr: "Le serveur n'a pas pu être joint."
+send.no_incoming:
+  en: "Nobody sent anything in the meantime."
+  fr: "Personne n'a rien envoyé entre-temps."
+send.incoming_one:
+  en: "%{authors} sent 1 commit on %{branch}: %{subjects}."
+  fr: "%{authors} a envoyé 1 commit sur %{branch} : %{subjects}."
+send.incoming_many:
+  en: "%{authors} sent %{count} commits on %{branch}: %{subjects}."
+  fr: "%{authors} ont envoyé %{count} commits sur %{branch} : %{subjects}."
+send.quoted:
+  en: "“%{subject}”"
+  fr: "« %{subject} »"
+send.step_integrate:
+  en: "Integrate their work into yours"
+  fr: "Intégrer son travail au vôtre"
+send.waiting:
+  en: "Waiting for the server…"
+  fr: "En attente du serveur…"
+send.nothing_to_integrate:
+  en: "Nothing to integrate."
+  fr: "Rien à intégrer."
+send.rebase:
+  en: "Put my commits after theirs"
+  fr: "Placer mes commits après les siens"
+send.rebase_hint:
+  en: "Straight-line history."
+  fr: "Historique en ligne droite."
+send.setting:
+  en: "Repository setting: pull.rebase = %{value}."
+  fr: "Réglage du dépôt : pull.rebase = %{value}."
+send.setting_unset:
+  en: "pull.rebase is not set: Simple Git recommends this choice."
+  fr: "pull.rebase n'est pas réglé : Simple Git recommande ce choix."
+send.merge:
+  en: "Merge both"
+  fr: "Fusionner les deux"
+send.merge_hint:
+  en: "Adds a merge commit that keeps both lines visible."
+  fr: "Ajoute un commit de fusion qui garde les deux lignes visibles."
+send.recommended:
+  en: "(recommended)"
+  fr: "(recommandé)"
+send.step_push:
+  en: "Send to the server"
+  fr: "Envoyer sur le serveur"
+send.push_hint:
+  en: "If a conflict shows up at step 2, the send stops and you can put everything back as before."
+  fr: "Si un conflit apparaît à l'étape 2, l'envoi s'arrête et vous pouvez tout remettre comme avant."
+send.integrate_and_send:
+  en: "Integrate and send"
+  fr: "Intégrer et envoyer"
+send.send:
+  en: "Send"
+  fr: "Envoyer"
+send.retry:
+  en: "Try again"
+  fr: "Réessayer"
+send.done:
+  en: "Sent to %{remote}: %{branch} is up to date on the server."
+  fr: "Envoyé sur %{remote} : %{branch} est à jour sur le serveur."

@@ -3119,6 +3119,7 @@ name = "simple-git-gui"
 version = "0.1.0"
 dependencies = [
  "iced",
+ "libc",
  "rfd",
  "rust-i18n",
  "shell-words",

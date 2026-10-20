@@ -30,6 +30,11 @@ pub struct GitCommand {
     pub timeout: Duration,
     /// Background commands (periodic refresh) are hidden from the journal by default.
     pub background: bool,
+    /// Data written to git's standard input (e.g. a patch for `git apply -`).
+    pub input: Option<String>,
+    /// For a file edit the app does itself (not a git call): the equivalent
+    /// shell command, shown in the journal instead.
+    pub shell: Option<String>,
 }
 
 impl GitCommand {
@@ -43,6 +48,8 @@ impl GitCommand {
             cwd: None,
             timeout: LOCAL_TIMEOUT,
             background: false,
+            input: None,
+            shell: None,
         }
     }
 
@@ -56,6 +63,11 @@ impl GitCommand {
         self
     }
 
+    pub fn with_input(mut self, input: impl Into<String>) -> Self {
+        self.input = Some(input.into());
+        self
+    }
+
     pub fn background(mut self) -> Self {
         self.background = true;
         self
@@ -63,6 +75,9 @@ impl GitCommand {
 
     /// The command as a user would type it in a terminal.
     pub fn display(&self) -> String {
+        if let Some(shell) = &self.shell {
+            return shell.clone();
+        }
         std::iter::once("git")
             .chain(self.args.iter().map(String::as_str))
             .map(quote)
@@ -73,7 +88,7 @@ impl GitCommand {
 
 /// Quotes an argument only when a shell would need it, so the journal stays
 /// readable (`--porcelain=v2` rather than `'--porcelain=v2'`).
-fn quote(arg: &str) -> String {
+pub fn quote(arg: &str) -> String {
     let plain = !arg.is_empty()
         && arg
             .chars()
@@ -109,6 +124,23 @@ pub struct CommandRecord {
 }
 
 impl CommandRecord {
+    /// Records a change the app made itself, shown as `shell` in the journal.
+    pub fn local(shell: String, cwd: &Path, result: Result<(), String>) -> Self {
+        let mut command = GitCommand::new(Vec::<String>::new()).in_dir(cwd);
+        command.shell = Some(shell);
+        let (outcome, stderr) = match result {
+            Ok(()) => (Outcome::Exited(0), String::new()),
+            Err(e) => (Outcome::Exited(1), e),
+        };
+        Self {
+            command,
+            outcome,
+            stdout: String::new(),
+            stderr,
+            duration: Duration::ZERO,
+        }
+    }
+
     pub fn success(&self) -> bool {
         self.outcome == Outcome::Exited(0)
     }
@@ -149,7 +181,11 @@ pub async fn run(command: GitCommand) -> CommandRecord {
         cmd.arg("-c").arg(config);
     }
     cmd.args(&command.args)
-        .stdin(Stdio::null())
+        .stdin(if command.input.is_some() {
+            Stdio::piped()
+        } else {
+            Stdio::null()
+        })
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         // Never ask anything on a terminal: fail instead of hanging.
@@ -170,8 +206,21 @@ pub async fn run(command: GitCommand) -> CommandRecord {
         // CREATE_NO_WINDOW: do not flash a console window for each command.
         cmd.creation_flags(0x0800_0000);
     }
+    #[cfg(unix)]
+    {
+        // A new session has no controlling terminal, so ssh cannot open
+        // /dev/tty to ask for a passphrase and wait forever: it fails (or uses
+        // SSH_ASKPASS) instead.
+        // SAFETY: setsid is async-signal-safe and touches no Rust state.
+        unsafe {
+            cmd.pre_exec(|| {
+                libc::setsid();
+                Ok(())
+            });
+        }
+    }
 
-    let child = match cmd.spawn() {
+    let mut child = match cmd.spawn() {
         Ok(child) => child,
         Err(e) => {
             return CommandRecord {
@@ -185,6 +234,15 @@ pub async fn run(command: GitCommand) -> CommandRecord {
     };
 
     // On timeout the future is dropped, which kills the child (kill_on_drop).
+    if let (Some(input), Some(mut stdin)) = (command.input.clone(), child.stdin.take()) {
+        use tokio::io::AsyncWriteExt;
+        // Written in the background so a large input cannot block on a full
+        // pipe while git waits for us to read its output.
+        tokio::spawn(async move {
+            let _ = stdin.write_all(input.as_bytes()).await;
+        });
+    }
+
     match tokio::time::timeout(command.timeout, child.wait_with_output()).await {
         Ok(Ok(output)) => CommandRecord {
             outcome: match output.status.code() {
@@ -238,6 +296,17 @@ mod tests {
         let record = run(GitCommand::new(["status"]).in_dir(dir.path())).await;
         assert!(!record.success());
         assert!(record.error_summary().contains("not a git repository"));
+    }
+
+    #[tokio::test]
+    async fn passes_input_on_stdin() {
+        let record = run(GitCommand::new(["hash-object", "--stdin"]).with_input("abc\n")).await;
+        assert!(record.success(), "{:?}", record);
+        // `echo abc | git hash-object --stdin`
+        assert_eq!(
+            record.stdout.trim(),
+            "8baef1b4abc478178b004d62031cf7fe6db6f903"
+        );
     }
 
     #[tokio::test]

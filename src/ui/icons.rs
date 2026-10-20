@@ -14,6 +14,8 @@ pub enum Icon {
     BranchSmall,
     Check,
     Cross,
+    Fetch,
+    Send,
 }
 
 impl Icon {
@@ -31,6 +33,8 @@ impl Icon {
             }
             Icon::Check => r#"<path d="M5 12l5 5 9-10"/>"#,
             Icon::Cross => r#"<path d="M6 6l12 12M18 6L6 18"/>"#,
+            Icon::Fetch => r#"<path d="M12 4v12M6 10l6 6 6-6M4 20h16"/>"#,
+            Icon::Send => r#"<path d="M12 20V8M6 14l6-6 6 6M4 4h16"/>"#,
             Icon::BranchSmall => {
                 r#"<circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M6 8.5v7"/>"#
             }
