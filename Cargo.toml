@@ -1,0 +1,15 @@
+[package]
+name = "simple-git-gui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+iced = { version = "0.14.0", features = ["tokio", "svg"] }
+rfd = "0.17.2"
+rust-i18n = "4.2.4"
+shell-words = "1.1.1"
+sys-locale = "0.3.2"
+tokio = { version = "1.54.0", features = ["process", "time", "macros", "rt-multi-thread"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
