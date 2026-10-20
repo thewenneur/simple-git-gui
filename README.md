@@ -1,7 +1,7 @@
 # Simple Git
 
-A graphical interface for Git designed for people who don't know Git (hardware/VHDL and
-design teams), without hiding anything from experienced users: every guided action shows
+A graphical interface for Git designed for people who don't know Git (design teams, non-dev people)
+ without hiding anything from experienced users: every guided action shows
 the exact `git` command it runs.
 
 A portable desktop application written in Rust with [iced](https://iced.rs). It uses the
