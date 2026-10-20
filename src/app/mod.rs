@@ -341,6 +341,8 @@ pub enum Message {
     CloseDialog,
     RestoreFile(String, String),
     SetPromptWhitespace(bool),
+    /// Merge or rebase, in a dialog opened by a drop that can do both.
+    SetPromptKind(crate::git::integrate::Kind),
     StartIntegration,
     ClosePrompt,
     IntegrationStarted(Box<integrate::Session>, Vec<CommandRecord>),
@@ -884,6 +886,21 @@ impl App {
             Message::SetPromptWhitespace(on) => {
                 if let Some(prompt) = &mut self.integration_prompt {
                     prompt.ignore_whitespace = on;
+                }
+                Task::none()
+            }
+            Message::SetPromptKind(kind) => {
+                if let Some(prompt) = &mut self.integration_prompt
+                    && prompt.kind != kind
+                    && let Some((kind, other, branch)) = prompt.alternative.take()
+                {
+                    let previous = (
+                        prompt.kind,
+                        std::mem::replace(&mut prompt.other, other),
+                        std::mem::replace(&mut prompt.branch, branch),
+                    );
+                    prompt.kind = kind;
+                    prompt.alternative = Some(previous);
                 }
                 Task::none()
             }

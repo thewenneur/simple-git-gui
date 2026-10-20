@@ -245,8 +245,23 @@ impl App {
                 ..
             }) => {
                 self.drops += 1;
+                // Bringing two branches together can be a merge or a rebase:
+                // the dialog offers the other way too. Not for a part of a
+                // branch, nor for a branch merged into anything else than
+                // the current one.
+                let current = self.current_branch_and_changes().0;
+                let alternative = match (kind, &after, &branch) {
+                    (_, Some(_), _) => None,
+                    (Kind::Rebase, None, None) => Some((Kind::Merge, other.clone(), None)),
+                    (Kind::Merge, None, None) => Some((Kind::Rebase, other.clone(), None)),
+                    (Kind::Rebase, None, Some(moved)) if current.as_deref() == Some(&other) => {
+                        Some((Kind::Merge, moved.clone(), None))
+                    }
+                    _ => None,
+                };
                 let task = self.open_integration(kind, other);
                 if let Some(prompt) = &mut self.integration_prompt {
+                    prompt.alternative = alternative;
                     prompt.after = after;
                     prompt.branch = branch;
                 }

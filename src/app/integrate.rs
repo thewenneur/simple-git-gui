@@ -24,6 +24,9 @@ pub struct Prompt {
     /// For a rebase of another branch than the current one.
     pub branch: Option<String>,
     pub ignore_whitespace: bool,
+    /// Opened by a drop that a merge and a rebase can both do: the other
+    /// way (kind, other, branch), so the dialog lets the user pick.
+    pub alternative: Option<(Kind, String, Option<String>)>,
 }
 
 /// A merge or rebase started from the app, remembered so it can be undone
@@ -274,6 +277,7 @@ impl App {
             after: None,
             branch: None,
             ignore_whitespace: true,
+            alternative: None,
         });
         Task::none()
     }
@@ -801,6 +805,33 @@ impl App {
             text(intro).color(p.text_2),
         ]
         .spacing(14);
+        if prompt.alternative.is_some() {
+            let mut kinds = row![].height(34);
+            for (kind, label) in [
+                (Kind::Merge, t!("drop.choice_merge")),
+                (Kind::Rebase, t!("drop.choice_rebase")),
+            ] {
+                let selected = prompt.kind == kind;
+                kinds = kinds.push(
+                    button(centered(text(label).size(13).font(sans(if selected {
+                        Weight::Semibold
+                    } else {
+                        Weight::Normal
+                    }))))
+                    .padding([0, 12])
+                    .height(Length::Fill)
+                    .on_press(Message::SetPromptKind(kind))
+                    .style(style::accent_segment(selected)),
+                );
+            }
+            col = col.push(
+                column![
+                    container(kinds).padding(1).style(style::segmented_frame),
+                    text(t!("drop.choice_hint")).size(13).color(p.text_2),
+                ]
+                .spacing(6),
+            );
+        }
         if let Some(after) = &prompt.after {
             col = col.push(
                 text(t!(

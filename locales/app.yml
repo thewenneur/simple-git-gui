@@ -700,8 +700,8 @@ config.pull_hint:
   en: "\"Put my commits after\" keeps a straight history. \"Merge\" adds a merge commit."
   fr: "« Placer mes commits après » garde un historique droit. « Fusionner » ajoute un commit de fusion."
 config.pull_rebase:
-  en: "Put my commits after (rebase)"
-  fr: "Placer mes commits après (rebase)"
+  en: "Move (rebase)"
+  fr: "Déplacer (rebase)"
 config.pull_merge:
   en: "Merge"
   fr: "Fusionner (merge)"
@@ -1054,6 +1054,15 @@ integrate.merge_title:
 integrate.merge_intro:
   en: "The commits of %{branch} join %{into} with a merge commit. Nothing is saved before you have checked the result."
   fr: "Les commits de %{branch} rejoignent %{into} par un commit de fusion. Rien n'est enregistré avant que vous ayez vérifié le résultat."
+drop.choice_merge:
+  en: "Merge"
+  fr: "Fusionner (merge)"
+drop.choice_rebase:
+  en: "Move (rebase)"
+  fr: "Déplacer (rebase)"
+drop.choice_hint:
+  en: "A merge keeps both histories as they are and adds a merge commit. A rebase moves the commits for a straight history; they get new identifiers."
+  fr: "La fusion garde les deux historiques tels quels et ajoute un commit de fusion. Le rebase déplace les commits pour un historique droit ; ils reçoivent de nouveaux identifiants."
 integrate.merge_button:
   en: "Merge"
   fr: "Fusionner"
