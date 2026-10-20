@@ -245,6 +245,8 @@ mod tests {
         git(root, &["init", "-q", "-b", "main"]).await;
         git(root, &["config", "user.name", "Test"]).await;
         git(root, &["config", "user.email", "t@example.com"]).await;
+        // Windows runners set core.autocrlf, which rewrites line endings on checkout.
+        git(root, &["config", "core.autocrlf", "false"]).await;
         tmp
     }
 

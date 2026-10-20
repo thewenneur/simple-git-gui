@@ -226,7 +226,8 @@ mod tests {
 
     #[test]
     fn every_setting_has_texts() {
-        let locales = include_str!("../../locales/app.yml");
+        // The checkout may use CRLF line endings (Windows).
+        let locales = include_str!("../../locales/app.yml").replace("\r\n", "\n");
         for (section, settings) in SECTIONS {
             assert!(locales.contains(&format!("\nconfig.section_{section}:\n")));
             for s in *settings {
