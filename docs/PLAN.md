@@ -24,6 +24,11 @@ repository, file status, history.
   already tracked, also offers `git rm --cached` to stop tracking it without deleting it
   from disk. Undoable with Ctrl+Z.
 
+Status: done. Credentials: `credential.helper` with the helpers git ships on each system
+(Git Credential Manager and the Windows vault, the macOS Keychain, a one-hour memory
+cache) and the plain-text file, flagged as unprotected. The files section also fixes
+the line endings of files already saved (`git add --renormalize`), undoable with Ctrl+Z.
+
 ## 3. Branches, conflicts and tree view
 - Merge/rebase wizards. Never "ours/theirs": each side carries its branch name, the right
   way round for a merge as well as for a rebase.
