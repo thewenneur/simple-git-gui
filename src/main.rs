@@ -7,6 +7,7 @@ extern crate rust_i18n;
 mod app;
 mod git;
 mod i18n;
+mod settings;
 mod ui;
 
 i18n!("locales", fallback = "en");

@@ -97,6 +97,7 @@ mod tests {
             include_str!("app/modules.rs"),
             include_str!("app/remotes.rs"),
             include_str!("app/worktrees.rs"),
+            include_str!("app/tutorial.rs"),
             include_str!("git/undo.rs"),
             include_str!("git/diff.rs"),
             include_str!("git/ops.rs"),

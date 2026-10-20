@@ -90,6 +90,10 @@ cargo run --release -- ~/project    # opens this repository directly
   if wanted, remove it (forcing needs advanced mode and a confirmation), lock it with a
   reason, unlock it and forget missing folders. Ctrl+Z undoes them where possible. Going
   onto a branch already open in another workspace says so and offers to open it.
+- An **interactive tutorial**, offered on first launch and replayable from the **?** button
+  or the start screen: pick a track (hardware, design, advanced) and do each step for
+  real on a practice repository in a temporary folder, with the right area of the window
+  highlighted. Steps can be skipped, and the tour left and resumed where it stopped.
 - Ready-made **`.gitignore` rules** for Vivado, Quartus, ModelSim/Questa, GHDL/NVC, KiCad,
   Office, the three systems, VS Code, Python and Rust, added without duplicates and undoable.
 - **Git log panel**: every command run by your actions, its result and its duration.
@@ -121,6 +125,7 @@ The roadmap is in [docs/PLAN.md](docs/PLAN.md).
 - `src/git/config.rs`: the settings of the Git configuration screen; `src/git/remotes.rs`:
   remotes and `git init`.
 - `src/git/worktrees.rs`: workspaces (`git worktree`) listing and commands.
+- `src/git/practice.rs`: the tutorial's practice repository, its server and colleague.
 - `src/git/submodules.rs`: submodule state and commands; `src/git/lfs.rs`: Git LFS
   patterns and locks; `src/git/templates.rs`: the `.gitignore` templates.
 - `src/app/mod.rs`: application state, messages and the main layout; `src/app/changes.rs`
@@ -130,7 +135,9 @@ The roadmap is in [docs/PLAN.md](docs/PLAN.md).
   assistant), `src/app/dragdrop.rs` (drag and drop gestures and their confirmation),
   `src/app/modules.rs` (submodules, locked files and `.gitignore` templates),
   `src/app/remotes.rs` (servers card and new repository form), `src/app/worktrees.rs`
-  (workspaces screen).
+  (workspaces screen), `src/app/tutorial.rs` (tracks, lessons, guide card, highlights).
+- `src/settings.rs`: the app's own settings (`settings.txt` in the configuration folder,
+  or in `SIMPLE_GIT_CONFIG_DIR`).
 - `src/ui/style.rs`: light and dark palettes, fonts and widget styles; `src/ui/icons.rs`: icons.
 - `assets/fonts/`: IBM Plex Sans and Mono (SIL OFL 1.1 license, see `OFL.txt`).
 - `locales/app.yml`: every UI text, in English and French side by side. A test checks that

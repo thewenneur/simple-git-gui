@@ -9,6 +9,7 @@ pub mod ignore;
 pub mod integrate;
 pub mod lfs;
 pub mod ops;
+pub mod practice;
 pub mod remotes;
 pub mod repo;
 pub mod rewrite;
