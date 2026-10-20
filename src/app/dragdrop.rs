@@ -244,6 +244,7 @@ impl App {
                 branch,
                 ..
             }) => {
+                self.drops += 1;
                 let task = self.open_integration(kind, other);
                 if let Some(prompt) = &mut self.integration_prompt {
                     prompt.after = after;
@@ -598,6 +599,7 @@ impl App {
 
     /// Runs a plan confirmed in its dialog.
     pub(super) fn run_plan(&mut self, plan: DropPlan, squash: bool) -> Task<Message> {
+        self.drops += 1;
         let Some(repo) = &self.repo else {
             return Task::none();
         };

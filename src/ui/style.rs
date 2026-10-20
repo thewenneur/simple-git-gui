@@ -687,6 +687,33 @@ pub fn popup(theme: &Theme) -> container::Style {
     }
 }
 
+/// The part of the interface a tutorial step points at.
+pub fn spotlight(theme: &Theme) -> container::Style {
+    let p = palette(theme);
+    container::Style {
+        border: border(p.accent.strong, 3.0, 8.0),
+        ..container::Style::default()
+    }
+}
+
+/// Laid over the parts of the interface a tutorial step does not use.
+pub fn dimmed(_theme: &Theme) -> container::Style {
+    container::Style {
+        background: Some(Color::from_rgba8(0x10, 0x16, 0x20, 0.38).into()),
+        ..container::Style::default()
+    }
+}
+
+/// The tutorial's guide card, floating over the interface.
+/// No shadow: the CPU renderer draws a blurred shadow over the card itself.
+pub fn coach(theme: &Theme) -> container::Style {
+    let p = palette(theme);
+    container::Style {
+        text_color: Some(p.text),
+        ..boxed(p.surface, p.accent.strong, 10.0)
+    }
+}
+
 /// A step of the conflict assistant's header: done, current or to come.
 pub fn wizard_step(state: std::cmp::Ordering) -> impl Fn(&Theme) -> container::Style {
     move |_| match state {

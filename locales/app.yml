@@ -1926,3 +1926,194 @@ viewer.truncated:
 menu.browse:
   en: "Browse the project at this commit"
   fr: "Parcourir le projet à ce commit"
+
+# Interactive tutorial
+busy.practice:
+  en: "Preparing the practice repository…"
+  fr: "Préparation du dépôt d'entraînement…"
+help.tooltip:
+  en: "Help and tutorial"
+  fr: "Aide et tutoriel"
+practice.first:
+  en: "Counter skeleton"
+  fr: "Squelette du compteur"
+practice.uart:
+  en: "Add the UART transmitter"
+  fr: "Ajoute l'émetteur UART"
+practice.baud_fast:
+  en: "UART at 460800 baud"
+  fr: "UART à 460800 bauds"
+practice.debounce:
+  en: "Debounce the UART line, 9600 baud"
+  fr: "Anti-rebond sur la ligne UART, 9600 bauds"
+practice.readme:
+  en: "Document the board pins"
+  fr: "Documente le brochage de la carte"
+practice.trial:
+  en: "Blink the first LED"
+  fr: "Fait clignoter la première LED"
+practice.me:
+  en: "Me"
+  fr: "Moi"
+tutorial.welcome_title:
+  en: "New to Git?"
+  fr: "Débutant avec Git ?"
+tutorial.welcome_hint:
+  en: "A guided tour on a practice repository, in a few minutes. Nothing you do there touches your work."
+  fr: "Une visite guidée sur un dépôt d'entraînement, en quelques minutes. Rien de ce que vous y faites ne touche à votre travail."
+tutorial.start:
+  en: "Start the tutorial"
+  fr: "Lancer le tutoriel"
+tutorial.resume:
+  en: "Resume the tutorial"
+  fr: "Reprendre le tutoriel"
+tutorial.replay:
+  en: "Replay the tutorial"
+  fr: "Rejouer le tutoriel"
+tutorial.leave:
+  en: "Leave the tutorial"
+  fr: "Quitter le tutoriel"
+tutorial.left:
+  en: "Tutorial left. Resume it from the ? button at the top."
+  fr: "Tutoriel quitté. Reprenez-le depuis le bouton ? en haut."
+tutorial.later:
+  en: "Not now"
+  fr: "Plus tard"
+tutorial.offer_title:
+  en: "Welcome to Simple Git"
+  fr: "Bienvenue dans Simple Git"
+tutorial.offer_intro:
+  en: "A short guided tour on a practice repository created in a temporary folder: nothing you do there touches your work. Pick a track:"
+  fr: "Une courte visite guidée sur un dépôt d'entraînement créé dans un dossier temporaire : rien de ce que vous y faites ne touche à votre travail. Choisissez un parcours :"
+tutorial.offer_hint:
+  en: "You can replay it any time from the ? button at the top."
+  fr: "Vous pouvez le rejouer à tout moment depuis le bouton ? en haut."
+tutorial.track_hardware:
+  en: "Hardware (VHDL, FPGA)"
+  fr: "Matériel (VHDL, FPGA)"
+tutorial.track_hardware_hint:
+  en: "See a change, save it, undo, get and send, branches and conflicts."
+  fr: "Voir une modification, l'enregistrer, annuler, récupérer et envoyer, branches et conflits."
+tutorial.track_design:
+  en: "Design"
+  fr: "Design"
+tutorial.track_design_hint:
+  en: "See a change, save it, undo, get and send, and locking binary files."
+  fr: "Voir une modification, l'enregistrer, annuler, récupérer et envoyer, et verrouiller les fichiers binaires."
+tutorial.track_advanced:
+  en: "Advanced"
+  fr: "Avancé"
+tutorial.track_advanced_hint:
+  en: "The branch tree, drag and drop, the conflict assistant and workspaces."
+  fr: "L'arbre des branches, le glisser-déposer, l'assistant de conflits et les espaces de travail."
+tutorial.caption:
+  en: "Tutorial · %{track}"
+  fr: "Tutoriel · %{track}"
+tutorial.step_of:
+  en: "%{track} · %{step}/%{total}"
+  fr: "%{track} · %{step}/%{total}"
+tutorial.skip:
+  en: "Skip this step"
+  fr: "Passer cette étape"
+tutorial.next:
+  en: "Next"
+  fr: "Suivant"
+tutorial.finish:
+  en: "Close"
+  fr: "Fermer"
+tutorial.back:
+  en: "Back to the practice repository"
+  fr: "Revenir au dépôt d'entraînement"
+tutorial.paused_title:
+  en: "The tutorial is paused"
+  fr: "Le tutoriel est en pause"
+tutorial.paused_body:
+  en: "Another repository is open. Go back to the practice repository to continue."
+  fr: "Un autre dépôt est ouvert. Revenez au dépôt d'entraînement pour continuer."
+tutorial.done_title:
+  en: "Well done!"
+  fr: "Bravo !"
+tutorial.done_body:
+  en: "You know the essentials. Your real repositories were never touched: the practice one lives in a temporary folder. Replay the tutorial any time from the ? button."
+  fr: "Vous connaissez l'essentiel. Vos vrais dépôts n'ont jamais été touchés : celui d'entraînement est dans un dossier temporaire. Rejouez le tutoriel à tout moment depuis le bouton ?."
+tutorial.failed:
+  en: "The practice repository could not be created: %{detail}"
+  fr: "Le dépôt d'entraînement n'a pas pu être créé : %{detail}"
+tutorial.look_change_title:
+  en: "Look at a change"
+  fr: "Regarder une modification"
+tutorial.look_change_body:
+  en: "This is a small practice project. « What changed » lists the modified files; the right side shows the selected one line by line: the counter goes from 8 to 16 bits (red removed, green added). Click « Next »."
+  fr: "Voici un petit projet d'entraînement. « Ce qui a changé » liste les fichiers modifiés ; la partie droite montre celui choisi ligne par ligne : le compteur passe de 8 à 16 bits (en rouge ce qui est retiré, en vert ce qui est ajouté). Cliquez sur « Suivant »."
+tutorial.stage_title:
+  en: "Choose what to save"
+  fr: "Choisir ce qu'on enregistre"
+tutorial.stage_body:
+  en: "Tick the box in front of the file (or click « Include all »). It moves to « Included in the save »: that is git add."
+  fr: "Cochez la case devant le fichier (ou cliquez sur « Tout inclure »). Il passe dans « Inclus dans l'enregistrement » : c'est git add."
+tutorial.commit_title:
+  en: "Save it (commit)"
+  fr: "L'enregistrer (commit)"
+tutorial.commit_body:
+  en: "Under « Describe this change », write for instance « Widen the counter to 16 bits », then click the save button. That is git commit: the Git journal at the bottom shows the exact command."
+  fr: "Sous « Décrire ce changement », écrivez par exemple « Compteur sur 16 bits », puis cliquez sur le bouton d'enregistrement. C'est git commit : le journal Git en bas montre la commande exacte."
+tutorial.undo_title:
+  en: "Undo and redo"
+  fr: "Annuler et rétablir"
+tutorial.undo_body:
+  en: "Press Ctrl+Z (or the left arrow at the top): the save is undone and your change comes back. Then press Ctrl+Y to redo it. Every action can be undone this way until it is sent."
+  fr: "Appuyez sur Ctrl+Z (ou la flèche de gauche en haut) : l'enregistrement est annulé et votre modification revient. Puis appuyez sur Ctrl+Y pour le rétablir. Chaque action s'annule ainsi tant qu'elle n'est pas envoyée."
+tutorial.get_title:
+  en: "Get your colleagues' work"
+  fr: "Récupérer le travail des collègues"
+tutorial.get_body:
+  en: "Léa sent a commit to the server meanwhile. Click « Get »: git fetch brings it, then your commit is replayed after hers."
+  fr: "Léa a envoyé un commit sur le serveur entre-temps. Cliquez sur « Récupérer » : git fetch le rapporte, puis votre commit est rejoué après le sien."
+tutorial.send_title:
+  en: "Send your work"
+  fr: "Envoyer votre travail"
+tutorial.send_body:
+  en: "Click « Send »: the assistant shows what goes to the server before running git push. The server here is a folder next to the practice repository."
+  fr: "Cliquez sur « Envoyer » : l'assistant montre ce qui part sur le serveur avant de lancer git push. Ici, le serveur est un dossier à côté du dépôt d'entraînement."
+tutorial.tour_title:
+  en: "The branch tree"
+  fr: "L'arbre des branches"
+tutorial.tour_body:
+  en: "Each dot is a commit, each colour a branch, the newest at the top. Click a commit to see its files; Ctrl+click a second one to compare them. Click « Next » when you are ready."
+  fr: "Chaque point est un commit, chaque couleur une branche, le plus récent en haut. Cliquez sur un commit pour voir ses fichiers ; Ctrl+clic sur un second pour les comparer. Cliquez sur « Suivant » quand vous êtes prêt."
+tutorial.branch_title:
+  en: "Create a branch"
+  fr: "Créer une branche"
+tutorial.branch_body:
+  en: "Right-click a commit in the tree and choose « Create a branch here… ». Give it a name and confirm: that is git switch -c."
+  fr: "Faites un clic droit sur un commit de l'arbre et choisissez « Créer une branche ici… ». Donnez-lui un nom et validez : c'est git switch -c."
+tutorial.drag_title:
+  en: "Drag and drop"
+  fr: "Glisser-déposer"
+tutorial.drag_body:
+  en: "Hold Ctrl and drag the commit of %{trial} onto your branch main to copy it there (cherry-pick). The confirmation shows the git command before anything runs."
+  fr: "Maintenez Ctrl et glissez le commit de %{trial} sur votre branche main pour l'y copier (cherry-pick). La confirmation montre la commande git avant toute action."
+tutorial.conflict_title:
+  en: "Settle a conflict"
+  fr: "Régler un conflit"
+tutorial.conflict_body:
+  en: "Right-click the branch %{branch} and bring it into main (or drag its label onto main). Léa changed the same line as main: the assistant shows each side under its branch name. Pick a side for each block, then finish the merge."
+  fr: "Faites un clic droit sur la branche %{branch} et intégrez-la dans main (ou glissez son étiquette sur main). Léa a modifié la même ligne que main : l'assistant montre chaque côté sous le nom de sa branche. Choisissez un côté pour chaque bloc, puis terminez la fusion."
+tutorial.locks_title:
+  en: "Locked files"
+  fr: "Fichiers verrouillés"
+tutorial.locks_body:
+  en: "Binary files (drawings, PDFs, bitstreams) can't be merged. With Git LFS, lock a file before editing it: colleagues see who holds it. The practice server has no locks: look around, then click « Next »."
+  fr: "Les fichiers binaires (dessins, PDF, bitstreams) ne se fusionnent pas. Avec Git LFS, verrouillez un fichier avant de le modifier : vos collègues voient qui le tient. Le serveur d'entraînement n'a pas de verrous : regardez l'écran, puis cliquez sur « Suivant »."
+tutorial.workspace_title:
+  en: "Two branches at once"
+  fr: "Deux branches à la fois"
+tutorial.workspace_body:
+  en: "Click « New workspace », pick a branch (for instance %{trial}) and create it: a second folder with that branch, sharing the same history."
+  fr: "Cliquez sur « Nouvel espace de travail », choisissez une branche (par exemple %{trial}) et créez-le : un second dossier avec cette branche, qui partage le même historique."
+tutorial.journal_title:
+  en: "The Git journal"
+  fr: "Le journal Git"
+tutorial.journal_body:
+  en: "Every action you did is here with its exact git command, its result and its duration. In advanced mode you can also show the read-only commands and type your own. Click « Next » to finish."
+  fr: "Chaque action que vous avez faite est ici avec sa commande git exacte, son résultat et sa durée. En mode avancé, vous pouvez aussi afficher les commandes de lecture et taper les vôtres. Cliquez sur « Suivant » pour terminer."
