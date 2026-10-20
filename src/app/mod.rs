@@ -1331,6 +1331,12 @@ impl App {
         // Always a stack, so the page keeps its state (scrolling) when
         // something opens over it.
         let mut layers: Vec<Element<'_, Message>> = vec![page];
+        // Under dialogs and menus, so a menu opened near it stays usable.
+        if !self.tutorial_offer
+            && let Some(coach) = self.coach_view(p)
+        {
+            layers.push(coach);
+        }
         if let Some(dialog) = dialog {
             layers.push(opaque(
                 container(dialog)
@@ -1350,11 +1356,6 @@ impl App {
             ));
         } else if let Some(overlay) = self.drag_overlay(p) {
             layers.push(overlay);
-        }
-        if !self.tutorial_offer
-            && let Some(coach) = self.coach_view(p)
-        {
-            layers.push(coach);
         }
         if self.help_open {
             layers.push(self.help_menu());
